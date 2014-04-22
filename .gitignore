@@ -1,0 +1,14 @@
+*
+!*/
+!.*
+!*.py
+!*.pyx
+!*.rst
+!*.ipynb
+!*.dia
+!*.wav
+!*.mat
+!*.lst
+!*.ipynb
+!Makefile
+./doc/
