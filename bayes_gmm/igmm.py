@@ -114,6 +114,10 @@ class IGMM(object):
         for i_iter in range(n_iter):
 
             # Loop over data items
+            # import random
+            # permuted = range(self.components.N)
+            # random.shuffle(permuted)
+            # for i in permuted:
             for i in xrange(self.components.N):
 
                 # Cache some old values for possible future use

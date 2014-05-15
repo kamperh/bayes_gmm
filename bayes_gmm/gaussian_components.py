@@ -64,7 +64,7 @@ class GaussianComponents(object):
         (4.214) Murphy, p. 134) for each of the K components.
     logdet_covars : Kx1 vector of float
         The log of the determinant of the covariance matrix for the
-        multivariate Student t distribution associated with each of the K
+        multivariate Student's t distribution associated with each of the K
         components.
     inv_covars : KxDxD matrix
         The inverse of the covariance matrices described above.
@@ -225,45 +225,6 @@ class GaussianComponents(object):
         v = v_N - self.D + 1
         return self._multivariate_student_t(i, mu, self.logdet_covars[k], self.inv_covars[k], v)
 
-    def log_marg_k(self, k):
-        """
-        Return the log marginal probability of the data vectors assigned to
-        component `k`.
-
-        The log marginal probability p(X) = p(x_1, x_2, ..., x_N) is returned
-        for the data vectors assigned to component `k`. See (266) in Murphy's
-        bayesGauss notes, p. 21.
-        """
-        k_N = self.prior.k_0 + self.counts[k]
-        v_N = self.prior.v_0 + self.counts[k]
-        m_N = self.m_N_numerators[k]/k_N
-        S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
-        i = np.arange(1, self.D + 1, dtype=np.int)
-        return (
-            - self.counts[k]*self.D/2.*self._cached_log_pi
-            + self.D/2.*math.log(self.prior.k_0) - self.D/2.*math.log(k_N)
-            + self.prior.v_0/2.*slogdet(self.prior.S_0)[1]
-            - v_N/2.*slogdet(S_N)[1]
-            + np.sum(
-                self._cached_gammaln_by_2[v_N + 1 - i] - 
-                self._cached_gammaln_by_2[self.prior.v_0 + 1 - i]
-                )
-            )
-
-    def rand_k(self, k):
-        """
-        Return a random mean vector and covariance matrix from the posterior
-        NIW distribution for component `k`.
-        """
-        k_N = self.prior.k_0 + self.counts[k]
-        v_N = self.prior.v_0 + self.counts[k]
-        m_N = self.m_N_numerators[k]/k_N
-        S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
-        sigma = np.linalg.solve(cholesky(S_N).T, np.eye(self.D))   # don't understand this step
-        sigma = wishart.iwishrnd(sigma, v_N, sigma)
-        mu = np.random.multivariate_normal(m_N, sigma/k_N)
-        return mu, sigma
-
     # @profile
     def log_post_pred(self, i):
         """
@@ -289,6 +250,31 @@ class GaussianComponents(object):
             - (vs + self.D)/2. * np.log(1 + 1./vs * studentt_mahalanobis)
             )
 
+    def log_marg_k(self, k):
+        """
+        Return the log marginal probability of the data vectors assigned to
+        component `k`.
+
+        The log marginal probability p(X) = p(x_1, x_2, ..., x_N) is returned
+        for the data vectors assigned to component `k`. See (266) in Murphy's
+        bayesGauss notes, p. 21.
+        """
+        k_N = self.prior.k_0 + self.counts[k]
+        v_N = self.prior.v_0 + self.counts[k]
+        m_N = self.m_N_numerators[k]/k_N
+        S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
+        i = np.arange(1, self.D + 1, dtype=np.int)
+        return (
+            - self.counts[k]*self.D/2.*self._cached_log_pi
+            + self.D/2.*math.log(self.prior.k_0) - self.D/2.*math.log(k_N)
+            + self.prior.v_0/2.*slogdet(self.prior.S_0)[1]
+            - v_N/2.*slogdet(S_N)[1]
+            + np.sum(
+                self._cached_gammaln_by_2[v_N + 1 - i] - 
+                self._cached_gammaln_by_2[self.prior.v_0 + 1 - i]
+                )
+            )
+
     def log_marg(self):
         """
         Return the log marginal probability of all the data vectors given the
@@ -301,6 +287,20 @@ class GaussianComponents(object):
         for k in xrange(self.K):
             log_prob_X_given_z += self.log_marg_k(k)
         return log_prob_X_given_z
+
+    def rand_k(self, k):
+        """
+        Return a random mean vector and covariance matrix from the posterior
+        NIW distribution for component `k`.
+        """
+        k_N = self.prior.k_0 + self.counts[k]
+        v_N = self.prior.v_0 + self.counts[k]
+        m_N = self.m_N_numerators[k]/k_N
+        S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
+        sigma = np.linalg.solve(cholesky(S_N).T, np.eye(self.D))   # don't understand this step
+        sigma = wishart.iwishrnd(sigma, v_N, sigma)
+        mu = np.random.multivariate_normal(m_N, sigma/k_N)
+        return mu, sigma
 
     def map(self, k):
         """
