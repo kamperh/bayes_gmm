@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class GaussianComponents(object):
     """
-    Component of a Bayesian Gaussian mixture model (GMM).
+    Components of a Bayesian Gaussian mixture model (GMM).
 
     This class is used to present the `K` components of a  Bayesian GMM. All
     values necessary for computing likelihood terms are stored. For example,
@@ -40,8 +40,8 @@ class GaussianComponents(object):
         The normal-inverse-Wishart prior.
     assignments : Nx1 vector of int
         The initial component assignments. If this values is None, then all
-        data vectors are left unassigned indicated, indicated with -1 in the
-        vector. Components should be labelled from 0.
+        data vectors are left unassigned indicated with -1 in the vector.
+        Components should be labelled from 0.
     K_max : int
         The maximum number of components. If this value is None, then K_max is
         set to N, the number of data vectors.
@@ -77,7 +77,7 @@ class GaussianComponents(object):
         # Attributes from parameters
         self.X = X
         self.prior = prior
-        self.N, self.D = X.shape            
+        self.N, self.D = X.shape
         if K_max is None:
             K_max = self.N
         self.K_max = K_max
@@ -114,7 +114,7 @@ class GaussianComponents(object):
         self._cached_prior_outer_m_0 = np.outer(self.prior.m_0, self.prior.m_0)
 
         self._cached_outer = np.zeros((self.N, self.D, self.D), np.float)
-        for i in range(self.N):
+        for i in xrange(self.N):
             self._cached_outer[i, :, :] = np.outer(self.X[i], self.X[i])
 
         n = np.concatenate([[1], np.arange(1, self.prior.v_0 + self.N + 2)])  # first element dud for indexing
@@ -211,7 +211,7 @@ class GaussianComponents(object):
         logdet_covar = slogdet(covar)[1]
         inv_covar = inv(covar)
         v = self.prior.v_0 - self.D + 1
-        return self._multivariate_student_t(i, mu, logdet_covar, inv_covar, v)
+        return self._multivariate_students_t(i, mu, logdet_covar, inv_covar, v)
 
     def log_post_pred_k(self, i, k):
         """
@@ -223,7 +223,7 @@ class GaussianComponents(object):
         m_N = self.m_N_numerators[k]/k_N
         mu = m_N
         v = v_N - self.D + 1
-        return self._multivariate_student_t(i, mu, self.logdet_covars[k], self.inv_covars[k], v)
+        return self._multivariate_students_t(i, mu, self.logdet_covars[k], self.inv_covars[k], v)
 
     # @profile
     def log_post_pred(self, i):
@@ -332,8 +332,10 @@ class GaussianComponents(object):
         self.inv_covars[k, :, :] = inv(covar)
 
     # @profile
-    def _multivariate_student_t(self, i, mu, logdet_covar, inv_covar, v):
-        """Return the value of the multivariate Student t PDF at `X[i]`."""
+    def _multivariate_students_t(self, i, mu, logdet_covar, inv_covar, v):
+        """
+        Return the value of the log multivariate Student's t PDF at `X[i]`.
+        """
         delta = self.X[i, :] - mu
         return (
             self._cached_gammaln_by_2[v + self.D] - self._cached_gammaln_by_2[v]
@@ -383,7 +385,7 @@ def main():
     gmm.add_item(1, 0)
     print "Log posterior of [0.5, 0.4, 0.3]:", gmm.log_post_pred_k(2, 0)
     print
-
+    return
 
     # ADDING AND REMOVING DATA VECTORS EXAMPLE
 
