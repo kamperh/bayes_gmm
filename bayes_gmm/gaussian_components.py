@@ -64,7 +64,7 @@ class GaussianComponents(object):
         (4.214) Murphy, p. 134) for each of the K components.
     logdet_covars : Kx1 vector of float
         The log of the determinant of the covariance matrix for the
-        multivariate Student t distribution associated with each of the K
+        multivariate Student's t distribution associated with each of the K
         components.
     inv_covars : KxDxD matrix
         The inverse of the covariance matrices described above.
