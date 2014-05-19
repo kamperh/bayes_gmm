@@ -12,6 +12,7 @@ mixture model (IGMM) are implemented using collapsed Gibbs sampling.
 Examples and testing code
 -------------------------
 - Run ``make test`` to run unit tests.
+- Run ``make test_coverage`` to check test coverage.
 - Look at the examples in the examples/ directory.
 
 

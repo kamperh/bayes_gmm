@@ -244,7 +244,8 @@ class GaussianComponents(object):
             multiple_mat_by_mat_dot(multiple_mat_trans(deltas), self.inv_covars[:self.K]), deltas
             ).ravel()
 
-        return (studentt_gammas 
+        return (
+            studentt_gammas 
             - self.D/2.*self._cached_log_v[vs] - self.D/2.*self._cached_log_pi
             - 0.5*self.logdet_covars[:self.K]
             - (vs + self.D)/2. * np.log(1 + 1./vs * studentt_mahalanobis)
@@ -354,8 +355,8 @@ multiple_mat_trans = lambda A: np.transpose(A, (0, 2, 1))
 
 def log_post_pred_unvectorized(gmm, i):
     """
-    Return the same value as `GMM.log_post_pred` but using an unvectorized
-    procedure, for testing purposes.
+    Return the same value as `GaussianComponents.log_post_pred` but using an
+    unvectorized procedure, for testing purposes.
     """
     post_pred = np.zeros(gmm.K, np.float)
     for k in range(gmm.K):
@@ -370,6 +371,7 @@ def log_post_pred_unvectorized(gmm, i):
 def main():
 
     from niw import NIW
+
 
     # LOG POSTERIOR EXAMPLE
 
