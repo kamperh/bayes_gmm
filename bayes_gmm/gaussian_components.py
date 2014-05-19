@@ -460,7 +460,7 @@ def main():
     print "Consider vector:", X[10]
     print "Log post predictive:", log_post_pred_unvectorized(gmm, 10)
     print "Log post predictive:", gmm.log_post_pred(10)
-
+    print "Log marginal for component 0:", gmm.log_marg_k(0)
 
 if __name__ == "__main__":
     main()

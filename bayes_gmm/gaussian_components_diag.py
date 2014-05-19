@@ -241,17 +241,14 @@ class GaussianComponentsDiag(object):
         k_N = self.prior.k_0 + self.counts[k]
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
-        S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
-        i = np.arange(1, self.D + 1, dtype=np.int)
+
+        S_N = self.S_N_partials[k] - k_N*np.square(m_N)
         return (
             - self.counts[k]*self.D/2.*self._cached_log_pi
             + self.D/2.*math.log(self.prior.k_0) - self.D/2.*math.log(k_N)
-            + self.prior.v_0/2.*slogdet(self.prior.S_0)[1]
-            - v_N/2.*slogdet(S_N)[1]
-            + np.sum(
-                self._cached_gammaln_by_2[v_N + 1 - i] - 
-                self._cached_gammaln_by_2[self.prior.v_0 + 1 - i]
-                )
+            + self.prior.v_0/2.*np.log(self.prior.S_0).sum()
+            - v_N/2.*np.log(S_N).sum()
+            + self.D*(self._cached_gammaln_by_2[v_N] - self._cached_gammaln_by_2[self.prior.v_0])
             )
 
     def _update_log_prod_vars_and_inv_vars(self, k):
@@ -362,6 +359,9 @@ def main():
     print
 
 
+    # HERE: CALCULATE LOG MARGINAL BY HAND AS ABOVE AND COMPARE TO log_marg_k, THEN ADD TEST
+
+
     # MULTIPLE COMPONENT EXAMPLE
 
     # Data generated with np.random.seed(2); np.random.rand(11, 4)
@@ -391,6 +391,7 @@ def main():
     print "Consider vector:", X[10]
     print "Log post predictive:", log_post_pred_unvectorized(gmm, 10)
     print "Log post predictive:", gmm.log_post_pred(10)
+    print "Log marginal for component 0:", gmm.log_marg_k(0)
 
 
 if __name__ == "__main__":
