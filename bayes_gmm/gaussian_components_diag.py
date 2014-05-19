@@ -128,9 +128,9 @@ class GaussianComponentsDiag(object):
         self._cached_gammaln_by_2 = gammaln(n/2.)
         self._cached_log_pi = math.log(np.pi)
 
-        # self.cached_log_prior = np.zeros(self.N, np.float)
-        # for i in xrange(self.N):
-        #     self.cached_log_prior[i] = self.log_prior(i)
+        self.cached_log_prior = np.zeros(self.N, np.float)
+        for i in xrange(self.N):
+            self.cached_log_prior[i] = self.log_prior(i)
 
     def add_item(self, i, k):
         """
@@ -153,11 +153,11 @@ class GaussianComponentsDiag(object):
         """Return the probability of `X[i]` under the prior alone."""
         mu = self.prior.m_0
         var = (self.prior.k_0 + 1.) / (self.prior.k_0*self.prior.v_0) * self.prior.S_0
-        print "var", var
         log_prod_var = np.log(var).sum()
         inv_var = 1./var
         v = self.prior.v_0
         return self._prod_students_t(i, mu, log_prod_var, inv_var, v)
+        # DONE
 
     def log_post_pred_k(self, i, k):
         """
@@ -191,18 +191,31 @@ class GaussianComponentsDiag(object):
         t PDFs at `X[i]`.
         """
         delta = self.X[i, :] - mu
-        print "delta:", delta
-        print "mu", mu
-        print "log_prod_var", log_prod_var
-        print "inv_var", inv_var
         return (
             self.D * (
                 self._cached_gammaln_by_2[v + 1] - self._cached_gammaln_by_2[v]
                 - 1./2*self._cached_log_v[v] - 1./2.*self._cached_log_pi
                 )
-            - 0.5*log_prod_var 
+            - 0.5*log_prod_var
             - (v + 1.)/2. * (np.log(1. + 1./v * np.square(delta) * inv_var)).sum()
             )
+        # DONE
+
+
+#-----------------------------------------------------------------------------#
+#                              UTILITY FUNCTIONS                              #
+#-----------------------------------------------------------------------------#
+
+def students_t(x, mu, var, v):
+    """
+    Return the value of the log Student's t PDF at `x`.
+
+    See Murphy's bayesGauss notes, p. 26. This function is mainly used for
+    testing purposes, specifically for comparison with
+    `GaussianComponentsDiag._prod_students_t`.
+    """
+    c = gammaln((v + 1)/2.) - gammaln(v/2.) - 0.5*(math.log(v) + math.log(np.pi) + math.log(var))
+    return c - (v + 1)/2. * math.log(1 + 1./v*(x - mu)**2/var)
 
 
 #-----------------------------------------------------------------------------#
@@ -213,6 +226,29 @@ def main():
 
     from niw import NIW
 
+
+    # LOG PRIOR EXAMPLE
+
+    D = 3
+    m_0 = np.array([0.5, -0.1, 0.1])
+    k_0 = 2.0
+    S_0 = 5.0*np.ones(D)
+    v_0 = 5
+    prior = NIW(m_0=m_0, k_0=k_0, v_0=v_0, S_0=S_0)
+    gmm = GaussianComponentsDiag(np.array([[0.5, 0.4, 0.3]]), prior)
+    x = gmm.X[0]
+    print "Log prior of " + str(x) + ":", gmm.log_prior(0)
+    print(
+        "Log prior of " + str(x) + ": " +
+        str(np.sum([students_t(x[i], m_0[i], S_0[i]*(k_0 + 1)/(k_0*v_0), v_0) for i in range(len(x))]))
+        )
+
+
+
+
+
+
+    return
 
     # LOG POSTERIOR EXAMPLE
 
@@ -227,8 +263,8 @@ def main():
         [-0.1, 0.8, -0.2],
         [0.5, 0.4, 0.3]
         ]), prior)
-    gmm.add_item(0, 0)
-    gmm.add_item(1, 0)
+    # gmm.add_item(0, 0)
+    # gmm.add_item(1, 0)
     print "Log prior of [0.5, 0.4, 0.3]:", gmm.log_prior(2)
     return
     print "Log posterior of [0.5, 0.4, 0.3]:", gmm.log_post_pred_k(2, 0)
