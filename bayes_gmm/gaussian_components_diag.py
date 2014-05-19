@@ -102,19 +102,19 @@ class GaussianComponentsDiag(object):
         self.K = 0
         if assignments is None:
             self.assignments = -1*np.ones(self.N, np.int)
-        # else:
+        else:
 
-        #     # Check that assignments are valid
-        #     assignments = np.asarray(assignments, np.int)
-        #     assert (self.N, ) == assignments.shape
-        #     # Apart from unassigned (-1), components should be labelled from 0
-        #     assert set(assignments).difference([-1]) == set(range(assignments.max() + 1))
-        #     self.assignments = assignments
+            # Check that assignments are valid
+            assignments = np.asarray(assignments, np.int)
+            assert (self.N, ) == assignments.shape
+            # Apart from unassigned (-1), components should be labelled from 0
+            assert set(assignments).difference([-1]) == set(range(assignments.max() + 1))
+            self.assignments = assignments
 
-        #     # Add the data items
-        #     for k in range(self.assignments.max() + 1):
-        #         for i in np.where(self.assignments == k)[0]:
-        #             self.add_item(i, k)
+            # Add the data items
+            for k in range(self.assignments.max() + 1):
+                for i in np.where(self.assignments == k)[0]:
+                    self.add_item(i, k)
 
     def _cache(self):
         self._cached_prior_square_m_0 = np.square(self.prior.m_0)
@@ -148,6 +148,42 @@ class GaussianComponentsDiag(object):
         self._update_log_prod_vars_and_inv_vars(k)
         self.assignments[i] = k
         # DONE
+
+    def del_item(self, i):
+        """Remove data vector `X[i]` from its component."""
+        k = self.assignments[i]
+
+        # Only do something if the data vector has been assigned
+        if k != -1:
+            self.counts[k] -= 1
+            self.assignments[i] = -1
+            if self.counts[k] == 0:
+                # Can just delete the component, don't have to update anything
+                self.del_component(k)
+            else:
+                # Update the component
+                self.m_N_numerators[k, :] -= self.X[i]
+                self.S_N_partials[k, :, :] -= self._cached_square[i]
+                self._update_log_prod_vars_and_inv_vars(k)
+
+    def del_component(self, k):
+        """Remove the component `k`."""
+        # logger.debug("Deleting component " + str(k) + ".")
+        # self.K -= 1
+        # if k != self.K:
+        #     # Put stats from last component into place of the one being removed
+        #     self.m_N_numerators[k] = self.m_N_numerators[self.K]
+        #     self.S_N_partials[k, :, :] = self.S_N_partials[self.K, :, :]
+        #     self.logdet_covars[k] = self.logdet_covars[self.K]
+        #     self.inv_covars[k, :, :] = self.inv_covars[self.K, :, :]
+        #     self.counts[k] = self.counts[self.K]
+        #     self.assignments[np.where(self.assignments == self.K)] = k
+        # # Empty out stats for last component
+        # self.m_N_numerators[self.K].fill(0.)
+        # self.S_N_partials[self.K, :, :].fill(0.)
+        # self.logdet_covars[self.K] = 0.
+        # self.inv_covars[self.K, :, :].fill(0.)
+        # self.counts[self.K] = 0
 
     def log_prior(self, i):
         """Return the probability of `X[i]` under the prior alone."""
@@ -249,7 +285,6 @@ def main():
         "Log prior of " + str(x) + ": " +
         str(np.sum([students_t(x[i], m_0[i], S_0[i]*(k_0 + 1)/(k_0*v_0), v_0) for i in range(len(x))]))
         )
-    print
     print
 
 
