@@ -120,8 +120,7 @@ class GaussianComponentsDiag(object):
         self._cached_prior_square_m_0 = np.square(self.prior.m_0)
 
         self._cached_square = np.zeros((self.N, self.D), np.float)
-        for i in xrange(self.N):
-            self._cached_square[i, :] = np.square(self.X[i])
+        self._cached_square = np.square(self.X)
 
         n = np.concatenate([[1], np.arange(1, self.prior.v_0 + self.N + 2)])  # first element dud for indexing
         self._cached_log_v = np.log(n)
@@ -148,6 +147,7 @@ class GaussianComponentsDiag(object):
         self.counts[k] += 1
         self._update_log_prod_vars_and_inv_vars(k)
         self.assignments[i] = k
+        # DONE
 
     def log_prior(self, i):
         """Return the probability of `X[i]` under the prior alone."""
@@ -170,6 +170,7 @@ class GaussianComponentsDiag(object):
         mu = m_N
         v = v_N
         return self._prod_students_t(i, mu, self.log_prod_vars[k], self.inv_vars[k], v)
+        # DONE
 
     def _update_log_prod_vars_and_inv_vars(self, k):
         """
@@ -184,6 +185,7 @@ class GaussianComponentsDiag(object):
         var = (k_N + 1.)/(k_N*v_N) * (self.S_N_partials[k] - k_N*np.square(m_N))
         self.log_prod_vars[k] = np.log(var).sum()
         self.inv_vars[k, :] = 1./var
+        # DONE
 
     def _prod_students_t(self, i, mu, log_prod_var, inv_var, v):
         """
@@ -235,40 +237,63 @@ def main():
     S_0 = 5.0*np.ones(D)
     v_0 = 5
     prior = NIW(m_0=m_0, k_0=k_0, v_0=v_0, S_0=S_0)
-    gmm = GaussianComponentsDiag(np.array([[0.5, 0.4, 0.3]]), prior)
+    X = np.array([
+            [0.5, 0.4, 0.3],
+            [1.2, 0.9, 0.2],
+            [-0.1, 0.8, -0.2]
+            ])
+    gmm = GaussianComponentsDiag(X, prior)
     x = gmm.X[0]
     print "Log prior of " + str(x) + ":", gmm.log_prior(0)
     print(
         "Log prior of " + str(x) + ": " +
         str(np.sum([students_t(x[i], m_0[i], S_0[i]*(k_0 + 1)/(k_0*v_0), v_0) for i in range(len(x))]))
         )
+    print
+    print
 
-
-
-
-
-
-    return
 
     # LOG POSTERIOR EXAMPLE
 
-    D = 3
-    S_0=5.0*np.ones(D)
-    v_0 = 5.0
-    v_0 = v_0 + D - 1
-    S_0star = S_0*(v_0 + D - 3)/(v_0 - D - 1)
-    prior = NIW(m_0=np.array([0.5, -0.1, 0.1]), k_0=2.0, v_0=v_0, S_0=S_0star)
-    gmm = GaussianComponentsDiag(np.array([
-        [1.2, 0.9, 0.2],
-        [-0.1, 0.8, -0.2],
-        [0.5, 0.4, 0.3]
-        ]), prior)
-    # gmm.add_item(0, 0)
-    # gmm.add_item(1, 0)
-    print "Log prior of [0.5, 0.4, 0.3]:", gmm.log_prior(2)
-    return
-    print "Log posterior of [0.5, 0.4, 0.3]:", gmm.log_post_pred_k(2, 0)
-    print
+    N = 2
+    for i in range(N):
+        gmm.add_item(i, 0)
+    k_N = k_0 + N
+    v_N = v_0 + N
+    m_N = (k_0*m_0 + N*X[:N].mean(axis=0))/k_N
+    S_N = S_0 + np.square(X[:N]).sum(axis=0) + k_0*np.square(m_0) - k_N*np.square(m_N)
+    var = S_N*(k_N + 1)/(k_N*v_N)
+    print "Log posterior of " + str(x) + ":", gmm.log_post_pred_k(0, 0)
+    print (
+        "Log posterior of " + str(x) + ": " +
+        str(np.sum([students_t(x[i], m_N[i], S_N[i]*(k_N + 1)/(k_N*v_N), v_N) for i in range(len(x))]))
+        )
+
+
+
+
+
+    # return
+
+    # # LOG POSTERIOR EXAMPLE
+
+    # D = 3
+    # S_0=5.0*np.ones(D)
+    # v_0 = 5.0
+    # v_0 = v_0 + D - 1
+    # S_0star = S_0*(v_0 + D - 3)/(v_0 - D - 1)
+    # prior = NIW(m_0=np.array([0.5, -0.1, 0.1]), k_0=2.0, v_0=v_0, S_0=S_0star)
+    # gmm = GaussianComponentsDiag(np.array([
+    #     [1.2, 0.9, 0.2],
+    #     [-0.1, 0.8, -0.2],
+    #     [0.5, 0.4, 0.3]
+    #     ]), prior)
+    # # gmm.add_item(0, 0)
+    # # gmm.add_item(1, 0)
+    # print "Log prior of [0.5, 0.4, 0.3]:", gmm.log_prior(2)
+    # return
+    # print "Log posterior of [0.5, 0.4, 0.3]:", gmm.log_post_pred_k(2, 0)
+    # print
 
 
 if __name__ == "__main__":
