@@ -128,6 +128,10 @@ class GaussianComponentsDiag(object):
         self._cached_gammaln_by_2 = gammaln(n/2.)
         self._cached_log_pi = math.log(np.pi)
 
+        # self.cached_log_prior = np.zeros(self.N, np.float)
+        # for i in xrange(self.N):
+        #     self.cached_log_prior[i] = self.log_prior(i)
+
     def add_item(self, i, k):
         """
         Add data vector `X[i]` to component `k`.
@@ -144,6 +148,16 @@ class GaussianComponentsDiag(object):
         self.counts[k] += 1
         self._update_log_prod_vars_and_inv_vars(k)
         self.assignments[i] = k
+
+    def log_prior(self, i):
+        """Return the probability of `X[i]` under the prior alone."""
+        mu = self.prior.m_0
+        var = (self.prior.k_0 + 1.) / (self.prior.k_0*self.prior.v_0) * self.prior.S_0
+        print "var", var
+        log_prod_var = np.log(var).sum()
+        inv_var = 1./var
+        v = self.prior.v_0
+        return self._prod_students_t(i, mu, log_prod_var, inv_var, v)
 
     def log_post_pred_k(self, i, k):
         """
@@ -167,7 +181,7 @@ class GaussianComponentsDiag(object):
         k_N = self.prior.k_0 + self.counts[k]
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
-        var = (k_N + 1.)/k_N*(self.S_N_partials[k] - k_N*np.square(m_N))
+        var = (k_N + 1.)/(k_N*v_N) * (self.S_N_partials[k] - k_N*np.square(m_N))
         self.log_prod_vars[k] = np.log(var).sum()
         self.inv_vars[k, :] = 1./var
 
@@ -177,14 +191,17 @@ class GaussianComponentsDiag(object):
         t PDFs at `X[i]`.
         """
         delta = self.X[i, :] - mu
-        print delta
+        print "delta:", delta
+        print "mu", mu
+        print "log_prod_var", log_prod_var
+        print "inv_var", inv_var
         return (
             self.D * (
                 self._cached_gammaln_by_2[v + 1] - self._cached_gammaln_by_2[v]
                 - 1./2*self._cached_log_v[v] - 1./2.*self._cached_log_pi
                 )
             - 0.5*log_prod_var 
-            - (v + 1)/2. * (np.log(1. + 1./v * np.square(delta) * inv_var)).sum()
+            - (v + 1.)/2. * (np.log(1. + 1./v * np.square(delta) * inv_var)).sum()
             )
 
 
@@ -199,7 +216,12 @@ def main():
 
     # LOG POSTERIOR EXAMPLE
 
-    prior = NIW(m_0=np.array([0.5, -0.1, 0.1]), k_0=2.0, v_0=5.0, S_0=5.0*np.ones(3))
+    D = 3
+    S_0=5.0*np.ones(D)
+    v_0 = 5.0
+    v_0 = v_0 + D - 1
+    S_0star = S_0*(v_0 + D - 3)/(v_0 - D - 1)
+    prior = NIW(m_0=np.array([0.5, -0.1, 0.1]), k_0=2.0, v_0=v_0, S_0=S_0star)
     gmm = GaussianComponentsDiag(np.array([
         [1.2, 0.9, 0.2],
         [-0.1, 0.8, -0.2],
@@ -207,6 +229,8 @@ def main():
         ]), prior)
     gmm.add_item(0, 0)
     gmm.add_item(1, 0)
+    print "Log prior of [0.5, 0.4, 0.3]:", gmm.log_prior(2)
+    return
     print "Log posterior of [0.5, 0.4, 0.3]:", gmm.log_post_pred_k(2, 0)
     print
 

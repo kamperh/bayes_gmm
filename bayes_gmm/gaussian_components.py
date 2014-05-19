@@ -211,6 +211,7 @@ class GaussianComponents(object):
         logdet_covar = slogdet(covar)[1]
         inv_covar = inv(covar)
         v = self.prior.v_0 - self.D + 1
+        print "covar", covar
         return self._multivariate_students_t(i, mu, logdet_covar, inv_covar, v)
 
     def log_post_pred_k(self, i, k):
@@ -337,6 +338,10 @@ class GaussianComponents(object):
         Return the value of the log multivariate Student's t PDF at `X[i]`.
         """
         delta = self.X[i, :] - mu
+        print "delta:", delta        
+        print "mu", mu
+        print "logdet_covar", logdet_covar
+        print "inv_covar", inv_covar
         return (
             self._cached_gammaln_by_2[v + self.D] - self._cached_gammaln_by_2[v]
             - self.D/2.*self._cached_log_v[v] - self.D/2.*self._cached_log_pi
@@ -372,7 +377,6 @@ def main():
 
     from niw import NIW
 
-
     # LOG POSTERIOR EXAMPLE
 
     prior = NIW(m_0=np.array([0.5, -0.1, 0.1]), k_0=2.0, v_0=5.0, S_0=5.0*np.eye(3))
@@ -383,9 +387,12 @@ def main():
         ]), prior)
     gmm.add_item(0, 0)
     gmm.add_item(1, 0)
+    print "Log prior of [0.5, 0.4, 0.3]:", gmm.log_prior(2)
+    return
     print "Log posterior of [0.5, 0.4, 0.3]:", gmm.log_post_pred_k(2, 0)
     print
     return
+
 
     # ADDING AND REMOVING DATA VECTORS EXAMPLE
 
