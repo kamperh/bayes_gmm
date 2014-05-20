@@ -88,6 +88,9 @@ class GaussianComponentsDiag(object):
             K_max = self.N
         self.K_max = K_max
 
+        # Check shape of S_0 in prior
+        assert len(prior.S_0.shape) == 1, "For diagonal covariance, S_0 needs to be vector."
+
         # Initialize attributes
         self.m_N_numerators = np.zeros((self.K_max, self.D), np.float)
         self.S_N_partials = np.zeros((self.K_max, self.D), np.float)
@@ -152,8 +155,8 @@ class GaussianComponentsDiag(object):
         """Restore component `k` using the provided statistics."""
         self.m_N_numerators[k, :] = m_N_numerator
         self.S_N_partials[k, :] = S_N_partial
-        self.log_prod_vars[k] = logdet_covar
-        self.inv_vars[k, :] = inv_covar
+        self.log_prod_vars[k] = log_prod_var
+        self.inv_vars[k, :] = inv_var
         self.counts[k] = count
 
     def add_item(self, i, k):
@@ -266,7 +269,6 @@ class GaussianComponentsDiag(object):
         k_N = self.prior.k_0 + self.counts[k]
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
-
         S_N = self.S_N_partials[k] - k_N*np.square(m_N)
         return (
             - self.counts[k]*self.D/2.*self._cached_log_pi
@@ -288,6 +290,29 @@ class GaussianComponentsDiag(object):
         for k in xrange(self.K):
             log_prob_X_given_z += self.log_marg_k(k)
         return log_prob_X_given_z
+
+    def rand_k(self, k):
+        """
+        Return a random mean and variance vector from the posterior product of
+        normal-inverse-chi-squared distributions for component `k`.
+        """
+
+        k_N = self.prior.k_0 + self.counts[k]
+        v_N = self.prior.v_0 + self.counts[k]
+        m_N = self.m_N_numerators[k]/k_N
+        S_N = self.S_N_partials[k] - k_N*np.square(m_N)
+
+        mean = np.zeros(self.D)
+        var = np.zeros(self.D)
+
+        for i in range(self.D):
+            var[i] = invchisquared_sample(v_N, S_N[i]/v_N, 1)[0]
+            mean[i] = np.random.normal(m_N[i], np.sqrt(var[i]/k_N))
+
+        # sigma = np.linalg.solve(cholesky(S_N).T, np.eye(self.D))   # don't understand this step
+        # sigma = wishart.iwishrnd(sigma, v_N, sigma)
+        # mu = np.random.multivariate_normal(m_N, sigma/k_N)
+        return mean, var
 
     def _update_log_prod_vars_and_inv_vars(self, k):
         """
@@ -344,6 +369,21 @@ def log_post_pred_unvectorized(gmm, i):
     for k in range(gmm.K):
         post_pred[k] = gmm.log_post_pred_k(i, k)
     return post_pred
+
+
+def invchisquared_sample(df, scale, size):
+    """Return `size` samples from the inverse-chi-squared distribution."""
+
+    # Parametrize inverse-gamma
+    alpha = df/2  
+    beta = df*scale/2.
+
+    # Parametrize gamma
+    k = alpha
+    theta = 1./beta
+
+    gamma_samples = np.random.gamma(k, theta, size)
+    return 1./gamma_samples
 
 
 #-----------------------------------------------------------------------------#
