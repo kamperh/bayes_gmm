@@ -13,6 +13,7 @@ import numpy as np
 import time
 
 from gaussian_components import GaussianComponents
+from gaussian_components_diag import GaussianComponentsDiag
 import utils
 
 logger = logging.getLogger(__name__)
@@ -26,8 +27,8 @@ class IGMM(object):
     """
     An infinite Gaussian mixture model (IGMM).
 
-    See `GaussianComponents` for an overview of the parameters not mentioned
-    below.
+    See `GaussianComponents` or `GaussianComponentsDiag` for an overview of the
+    parameters not mentioned below.
 
     Parameters
     ----------
@@ -46,9 +47,15 @@ class IGMM(object):
     K : int
         The initial number of mixture components: this is only used when
         `assignments` is "rand".
+    covariance_type : str
+        String describing the type of covariance parameters to use. Must be
+        one of "full" or "diag".
     """
 
-    def __init__(self, X, prior, alpha, assignments="rand", K=1, max_K=None):
+    def __init__(
+            self, X, prior, alpha, assignments="rand", K=1, K_max=None,
+            covariance_type="full"
+            ):
 
         self.alpha = alpha
         N, D = X.shape
@@ -72,7 +79,12 @@ class IGMM(object):
             # assignments is a vector
             pass
 
-        self.components = GaussianComponents(X, prior, assignments, max_K)
+        if covariance_type == "full":
+            self.components = GaussianComponents(X, prior, assignments, K_max)
+        elif covariance_type == "diag":
+            self.components = GaussianComponentsDiag(X, prior, assignments, K_max)
+        else:
+            assert False, "Invalid covariance type."
 
     def log_marg(self):
         """Return log marginal of data and component assignments: p(X, z)"""

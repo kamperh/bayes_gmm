@@ -4,24 +4,22 @@ Contact: kamperh@gmail.com
 Date: 2014
 """
 
-from numpy.linalg import cholesky, det, inv, slogdet
 from scipy.special import gammaln
 import logging
 import math
 import numpy as np
 
-import wishart
-
 logger = logging.getLogger(__name__)
 
 
 #-----------------------------------------------------------------------------#
-#                          GAUSSIAN COMPONENTS CLASS                          #
+#                DIAGONAL COVARIANCE GAUSSIAN COMPONENTS CLASS                #
 #-----------------------------------------------------------------------------#
 
-class GaussianComponents(object):
+class GaussianComponentsDiag(object):
     """
-    Components of a Bayesian Gaussian mixture model (GMM).
+    Components of a Bayesian Gaussian mixture model (GMM) with diagonal
+    covariance matrices.
 
     This class is used to present the `K` components of a  Bayesian GMM. All
     values necessary for computing likelihood terms are stored. For example,
@@ -30,14 +28,17 @@ class GaussianComponents(object):
     `K` components. A NxD data matrix `X` and a Nx1 assignment vector
     `assignments` are also attributes of this class. In the member functions,
     `i` generally refers to the index of a data vector while `k` refers to the
-    index of a mixture component.
+    index of a mixture component. The full covariance version of this class is
+    `gaussian_components.GaussianComponents`.
 
     Parameters
     ----------
     X : NxD matrix
         A matrix of N data vectors, each of dimension D.
     prior : `NIW`
-        The normal-inverse-Wishart prior.
+        The normal-inverse-chi-squared prior. It has the same attributes as
+        the `NIW` distribution, so the same class can be used. The S_0 member,
+        however, should be a D-dimensional vector rather than a matrix.
     assignments : Nx1 vector of int
         The initial component assignments. If this values is None, then all
         data vectors are left unassigned indicated with -1 in the vector.
@@ -58,16 +59,21 @@ class GaussianComponents(object):
     Component attributes
     --------------------
     m_N_numerators : KxD matrix
-        The numerator of (4.210) in Murphy, p. 134 for each component.
-    S_N_partials : KxDxD matrix
-        The partial DxD sum of squares matrix S_0 + S + k_0*m_0*m_0' (see
-        (4.214) Murphy, p. 134) for each of the K components.
-    logdet_covars : Kx1 vector of float
-        The log of the determinant of the covariance matrix for the
-        multivariate Student's t distribution associated with each of the K
-        components.
-    inv_covars : KxDxD matrix
-        The inverse of the covariance matrices described above.
+        The numerator of (4.210) in Murphy, p. 134 for each component. This
+        does not change for the diagonal covariance case.
+    S_N_partials : KxD matrix
+        The partial D-dimensional vector of the sum of squares S_0 + S +
+        k_0*m_0.^2 (see (138) in the Murphy's bayesGauss notes) for each of the
+        K components. The i'th element in one of these D-dimensional vectors is
+        the partial sum of squares for the i'th univariate posterior
+        distribution.
+    log_prod_vars : Kx1 vector of float
+        In the diagonal covariance matrix case, this is the log of the product
+        of the D variances for each of the K components. This is used in
+        calculating the product of the univariate Student's t distributions.
+    inv_vars : KxD matrix
+        Each D-dimensional row vector is the inverse of the variances on the
+        diagonal of the covariance matrix.
     counts : Kx1 vector of int
         Counts for each of the K components.
     """
@@ -82,11 +88,14 @@ class GaussianComponents(object):
             K_max = self.N
         self.K_max = K_max
 
+        # Check shape of S_0 in prior
+        assert len(prior.S_0.shape) == 1, "For diagonal covariance, S_0 needs to be vector."
+
         # Initialize attributes
         self.m_N_numerators = np.zeros((self.K_max, self.D), np.float)
-        self.S_N_partials = np.zeros((self.K_max, self.D, self.D), np.float)
-        self.logdet_covars = np.zeros(self.K_max, np.float)
-        self.inv_covars = np.zeros((self.K_max, self.D, self.D), np.float)
+        self.S_N_partials = np.zeros((self.K_max, self.D), np.float)
+        self.log_prod_vars = np.zeros(self.K_max, np.float)
+        self.inv_vars = np.zeros((self.K_max, self.D), np.float)
         self.counts = np.zeros(self.K_max, np.int)
 
         # Perform caching
@@ -111,11 +120,10 @@ class GaussianComponents(object):
                     self.add_item(i, k)
 
     def _cache(self):
-        self._cached_prior_outer_m_0 = np.outer(self.prior.m_0, self.prior.m_0)
+        self._cached_prior_square_m_0 = np.square(self.prior.m_0)
 
-        self._cached_outer = np.zeros((self.N, self.D, self.D), np.float)
-        for i in xrange(self.N):
-            self._cached_outer[i, :, :] = np.outer(self.X[i], self.X[i])
+        self._cached_square = np.zeros((self.N, self.D), np.float)
+        self._cached_square = np.square(self.X)
 
         n = np.concatenate([[1], np.arange(1, self.prior.v_0 + self.N + 2)])  # first element dud for indexing
         self._cached_log_v = np.log(n)
@@ -136,19 +144,19 @@ class GaussianComponents(object):
         return (
             self.m_N_numerators[k].copy(),
             self.S_N_partials[k].copy(),
-            self.logdet_covars[k],
-            self.inv_covars[k].copy(),
+            self.log_prod_vars[k],
+            self.inv_vars[k].copy(),
             self.counts[k]
             )
 
     def restore_component_from_stats(
-            self, k, m_N_numerator, S_N_partial, logdet_covar, inv_covar, count
+            self, k, m_N_numerator, S_N_partial, log_prod_var, inv_var, count
             ):
         """Restore component `k` using the provided statistics."""
         self.m_N_numerators[k, :] = m_N_numerator
-        self.S_N_partials[k, :, :] = S_N_partial
-        self.logdet_covars[k] = logdet_covar
-        self.inv_covars[k, :, :] = inv_covar
+        self.S_N_partials[k, :] = S_N_partial
+        self.log_prod_vars[k] = log_prod_var
+        self.inv_vars[k, :] = inv_var
         self.counts[k] = count
 
     def add_item(self, i, k):
@@ -161,11 +169,11 @@ class GaussianComponents(object):
         if k == self.K:
             self.K += 1
             self.m_N_numerators[k, :] = self.prior.k_0*self.prior.m_0
-            self.S_N_partials[k, :, :] = self.prior.S_0 + self.prior.k_0*self._cached_prior_outer_m_0
+            self.S_N_partials[k, :] = self.prior.S_0 + self.prior.k_0*self._cached_prior_square_m_0
         self.m_N_numerators[k, :] += self.X[i]
-        self.S_N_partials[k, :, :] += self._cached_outer[i]
+        self.S_N_partials[k, :] += self._cached_square[i]
         self.counts[k] += 1
-        self._update_logdet_covar_and_inv_covar(k)
+        self._update_log_prod_vars_and_inv_vars(k)
         self.assignments[i] = k
 
     def del_item(self, i):
@@ -182,8 +190,8 @@ class GaussianComponents(object):
             else:
                 # Update the component
                 self.m_N_numerators[k, :] -= self.X[i]
-                self.S_N_partials[k, :, :] -= self._cached_outer[i]
-                self._update_logdet_covar_and_inv_covar(k)
+                self.S_N_partials[k, :] -= self._cached_square[i]
+                self._update_log_prod_vars_and_inv_vars(k)
 
     def del_component(self, k):
         """Remove the component `k`."""
@@ -192,26 +200,26 @@ class GaussianComponents(object):
         if k != self.K:
             # Put stats from last component into place of the one being removed
             self.m_N_numerators[k] = self.m_N_numerators[self.K]
-            self.S_N_partials[k, :, :] = self.S_N_partials[self.K, :, :]
-            self.logdet_covars[k] = self.logdet_covars[self.K]
-            self.inv_covars[k, :, :] = self.inv_covars[self.K, :, :]
+            self.S_N_partials[k, :] = self.S_N_partials[self.K, :]
+            self.log_prod_vars[k] = self.log_prod_vars[self.K]
+            self.inv_vars[k, :] = self.inv_vars[self.K, :]
             self.counts[k] = self.counts[self.K]
             self.assignments[np.where(self.assignments == self.K)] = k
         # Empty out stats for last component
         self.m_N_numerators[self.K].fill(0.)
-        self.S_N_partials[self.K, :, :].fill(0.)
-        self.logdet_covars[self.K] = 0.
-        self.inv_covars[self.K, :, :].fill(0.)
+        self.S_N_partials[self.K, :].fill(0.)
+        self.log_prod_vars[self.K] = 0.
+        self.inv_vars[self.K, :].fill(0.)
         self.counts[self.K] = 0
 
     def log_prior(self, i):
         """Return the probability of `X[i]` under the prior alone."""
         mu = self.prior.m_0
-        covar = (self.prior.k_0 + 1) / (self.prior.k_0*(self.prior.v_0 - self.D + 1)) * self.prior.S_0
-        logdet_covar = slogdet(covar)[1]
-        inv_covar = inv(covar)
-        v = self.prior.v_0 - self.D + 1
-        return self._multivariate_students_t(i, mu, logdet_covar, inv_covar, v)
+        var = (self.prior.k_0 + 1.) / (self.prior.k_0*self.prior.v_0) * self.prior.S_0
+        log_prod_var = np.log(var).sum()
+        inv_var = 1./var
+        v = self.prior.v_0
+        return self._prod_students_t(i, mu, log_prod_var, inv_var, v)
 
     def log_post_pred_k(self, i, k):
         """
@@ -222,10 +230,9 @@ class GaussianComponents(object):
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
         mu = m_N
-        v = v_N - self.D + 1
-        return self._multivariate_students_t(i, mu, self.logdet_covars[k], self.inv_covars[k], v)
+        v = v_N
+        return self._prod_students_t(i, mu, self.log_prod_vars[k], self.inv_vars[k], v)
 
-    # @profile
     def log_post_pred(self, i):
         """
         Return a `K`-dimensional vector of the posterior predictive of `X[i]`
@@ -234,21 +241,20 @@ class GaussianComponents(object):
         k_Ns = self.prior.k_0 + self.counts[:self.K]
         v_Ns = self.prior.v_0 + self.counts[:self.K]
         m_Ns = self.m_N_numerators[:self.K]/k_Ns[:, np.newaxis]
-        vs = v_Ns - self.D + 1
 
-        studentt_gammas = self._cached_gammaln_by_2[vs + self.D] - self._cached_gammaln_by_2[vs]
+        studentt_gammas = self._cached_gammaln_by_2[v_Ns  + 1] - self._cached_gammaln_by_2[v_Ns]
 
         deltas = m_Ns - self.X[i]
-        deltas = deltas[:, :, np.newaxis]
-        studentt_mahalanobis = multiple_mat_by_mat_dot(
-            multiple_mat_by_mat_dot(multiple_mat_trans(deltas), self.inv_covars[:self.K]), deltas
-            ).ravel()
 
         return (
-            studentt_gammas 
-            - self.D/2.*self._cached_log_v[vs] - self.D/2.*self._cached_log_pi
-            - 0.5*self.logdet_covars[:self.K]
-            - (vs + self.D)/2. * np.log(1 + 1./vs * studentt_mahalanobis)
+            self.D * (
+                studentt_gammas
+                - 0.5*self._cached_log_v[v_Ns] - 0.5*self._cached_log_pi
+                )
+            - 0.5*self.log_prod_vars[:self.K]
+            - (v_Ns + 1)/2. * np.log(
+                1 + np.square(deltas)*self.inv_vars[:self.K]*(1./v_Ns[:, np.newaxis])
+                ).sum(axis = 1)
             )
 
     def log_marg_k(self, k):
@@ -257,23 +263,19 @@ class GaussianComponents(object):
         component `k`.
 
         The log marginal probability p(X) = p(x_1, x_2, ..., x_N) is returned
-        for the data vectors assigned to component `k`. See (266) in Murphy's
-        bayesGauss notes, p. 21.
+        for the data vectors assigned to component `k`. See (171) in Murphy's
+        bayesGauss notes, p. 15.
         """
         k_N = self.prior.k_0 + self.counts[k]
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
-        S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
-        i = np.arange(1, self.D + 1, dtype=np.int)
+        S_N = self.S_N_partials[k] - k_N*np.square(m_N)
         return (
             - self.counts[k]*self.D/2.*self._cached_log_pi
             + self.D/2.*math.log(self.prior.k_0) - self.D/2.*math.log(k_N)
-            + self.prior.v_0/2.*slogdet(self.prior.S_0)[1]
-            - v_N/2.*slogdet(S_N)[1]
-            + np.sum(
-                self._cached_gammaln_by_2[v_N + 1 - i] - 
-                self._cached_gammaln_by_2[self.prior.v_0 + 1 - i]
-                )
+            + self.prior.v_0/2.*np.log(self.prior.S_0).sum()
+            - v_N/2.*np.log(S_N).sum()
+            + self.D*(self._cached_gammaln_by_2[v_N] - self._cached_gammaln_by_2[self.prior.v_0])
             )
 
     def log_marg(self):
@@ -291,57 +293,54 @@ class GaussianComponents(object):
 
     def rand_k(self, k):
         """
-        Return a random mean vector and covariance matrix from the posterior
-        NIW distribution for component `k`.
+        Return a random mean and variance vector from the posterior product of
+        normal-inverse-chi-squared distributions for component `k`.
         """
+
         k_N = self.prior.k_0 + self.counts[k]
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
-        S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
-        sigma = np.linalg.solve(cholesky(S_N).T, np.eye(self.D))   # don't understand this step
-        sigma = wishart.iwishrnd(sigma, v_N, sigma)
-        mu = np.random.multivariate_normal(m_N, sigma/k_N)
-        return mu, sigma
+        S_N = self.S_N_partials[k] - k_N*np.square(m_N)
 
-    def map(self, k):
-        """
-        Return MAP estimate of the mean vector and covariance matrix of `k`.
+        mean = np.zeros(self.D)
+        var = np.zeros(self.D)
 
-        See (4.215) in Murphy, p. 134. The Dx1 mean vector and DxD covariance
-        matrix is returned.
-        """
-        k_N = self.prior.k_0 + self.counts[k]
-        v_N = self.prior.v_0 + self.counts[k]
-        m_N = self.m_N_numerators[k]/k_N
-        sigma = (self.S_N_partials[k] - k_N*np.outer(m_N, m_N))/(v_N + self.D + 2)
-        return (m_N, sigma)
+        for i in range(self.D):
+            var[i] = invchisquared_sample(v_N, S_N[i]/v_N, 1)[0]
+            mean[i] = np.random.normal(m_N[i], np.sqrt(var[i]/k_N))
 
-    # @profile
-    def _update_logdet_covar_and_inv_covar(self, k):
+        # sigma = np.linalg.solve(cholesky(S_N).T, np.eye(self.D))   # don't understand this step
+        # sigma = wishart.iwishrnd(sigma, v_N, sigma)
+        # mu = np.random.multivariate_normal(m_N, sigma/k_N)
+        return mean, var
+
+    def _update_log_prod_vars_and_inv_vars(self, k):
         """
-        Update the covariance terms for component `k`.
+        Update the variance terms for component `k`.
 
         Based on the `m_N_numerators` and `S_N_partials` terms for the `k`th
-        component, the `logdet_covars` and `inv_covars` terms are updated.
+        component, the `log_prod_vars` and `inv_vars` terms are updated.
         """
         k_N = self.prior.k_0 + self.counts[k]
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
-        covar = (k_N + 1.)/(k_N*(v_N - self.D + 1.)) * (self.S_N_partials[k] - k_N*np.outer(m_N, m_N))
-        self.logdet_covars[k] = slogdet(covar)[1]
-        self.inv_covars[k, :, :] = inv(covar)
+        var = (k_N + 1.)/(k_N*v_N) * (self.S_N_partials[k] - k_N*np.square(m_N))
+        self.log_prod_vars[k] = np.log(var).sum()
+        self.inv_vars[k, :] = 1./var
 
-    # @profile
-    def _multivariate_students_t(self, i, mu, logdet_covar, inv_covar, v):
+    def _prod_students_t(self, i, mu, log_prod_var, inv_var, v):
         """
-        Return the value of the log multivariate Student's t PDF at `X[i]`.
+        Return the value of the log of the product of the univariate Student's
+        t PDFs at `X[i]`.
         """
         delta = self.X[i, :] - mu
         return (
-            self._cached_gammaln_by_2[v + self.D] - self._cached_gammaln_by_2[v]
-            - self.D/2.*self._cached_log_v[v] - self.D/2.*self._cached_log_pi
-            - 0.5*logdet_covar 
-            - (v + self.D)/2. * math.log(1 + 1./v * np.dot(np.dot(delta, inv_covar), delta))
+            self.D * (
+                self._cached_gammaln_by_2[v + 1] - self._cached_gammaln_by_2[v]
+                - 0.5*self._cached_log_v[v] - 0.5*self._cached_log_pi
+                )
+            - 0.5*log_prod_var
+            - (v + 1.)/2. * (np.log(1. + 1./v * np.square(delta) * inv_var)).sum()
             )
 
 
@@ -349,19 +348,42 @@ class GaussianComponents(object):
 #                              UTILITY FUNCTIONS                              #
 #-----------------------------------------------------------------------------#
 
-multiple_mat_by_mat_dot = lambda A, B: np.einsum("...ij,...jk->...ik", A, B)
-multiple_mat_trans = lambda A: np.transpose(A, (0, 2, 1))
+def students_t(x, mu, var, v):
+    """
+    Return the value of the log Student's t PDF at `x`.
+
+    See Murphy's bayesGauss notes, p. 26. This function is mainly used for
+    testing purposes, specifically for comparison with
+    `GaussianComponentsDiag._prod_students_t`.
+    """
+    c = gammaln((v + 1)/2.) - gammaln(v/2.) - 0.5*(math.log(v) + math.log(np.pi) + math.log(var))
+    return c - (v + 1)/2. * math.log(1 + 1./v*(x - mu)**2/var)
 
 
 def log_post_pred_unvectorized(gmm, i):
     """
-    Return the same value as `GaussianComponents.log_post_pred` but using an
-    unvectorized procedure, for testing purposes.
+    Return the same value as `GaussianComponentsDiag.log_post_pred` but using
+    an unvectorized procedure, for testing purposes.
     """
     post_pred = np.zeros(gmm.K, np.float)
     for k in range(gmm.K):
         post_pred[k] = gmm.log_post_pred_k(i, k)
     return post_pred
+
+
+def invchisquared_sample(df, scale, size):
+    """Return `size` samples from the inverse-chi-squared distribution."""
+
+    # Parametrize inverse-gamma
+    alpha = df/2  
+    beta = df*scale/2.
+
+    # Parametrize gamma
+    k = alpha
+    theta = 1./beta
+
+    gamma_samples = np.random.gamma(k, theta, size)
+    return 1./gamma_samples
 
 
 #-----------------------------------------------------------------------------#
@@ -372,66 +394,50 @@ def main():
 
     from niw import NIW
 
+    # logging.basicConfig(level=logging.DEBUG)
+
 
     # LOG POSTERIOR EXAMPLE
 
-    prior = NIW(m_0=np.array([0.5, -0.1, 0.1]), k_0=2.0, v_0=5.0, S_0=5.0*np.eye(3))
-    gmm = GaussianComponents(np.array([
-        [1.2, 0.9, 0.2],
-        [-0.1, 0.8, -0.2],
-        [0.5, 0.4, 0.3]
-        ]), prior)
-    gmm.add_item(0, 0)
-    gmm.add_item(1, 0)
-    print "Log prior of [0.5, 0.4, 0.3]:", gmm.log_prior(2)
-    print "Log posterior of [0.5, 0.4, 0.3]:", gmm.log_post_pred_k(2, 0)
-    print
-
-
-    # ADDING AND REMOVING DATA VECTORS EXAMPLE
-
-    prior = NIW(m_0=np.array([0.0, 0.0]), k_0=2.0, v_0=5.0, S_0=5.0*np.eye(2))
-    gmm = GaussianComponents(np.array([
-        [1.2, 0.9],
-        [-0.1, 0.8],
-        [0.5, 0.4]
-        ]), prior)
-    print "Log prior of [1.2, 0.9]:", gmm.log_prior(0)
-    gmm.add_item(0, 0)
-    gmm.add_item(1, 0)
-    print "Log posterior of [0.5, 0.4]:", gmm.log_post_pred_k(2, 0)
-    gmm.add_item(2, 0)
-    print "Log posterior of [0.5, 0.4] after adding:", gmm.log_post_pred_k(2, 0)
-    gmm.del_item(2)
-    print "Log posterior of [0.5, 0.4] after removing:", gmm.log_post_pred_k(2, 0)
-    print
-
-
-    # LOG MARGINAL EXAMPLE
+    # Prior
+    D = 3
+    m_0 = np.array([0.5, -0.1, 0.1])
+    k_0 = 2.0
+    S_0 = 5.0*np.ones(D)
+    v_0 = 5
+    prior = NIW(m_0=m_0, k_0=k_0, v_0=v_0, S_0=S_0)
 
     # Data
     X = np.array([
-        [-0.3406, -0.3593, -0.0686],
-        [-0.3381, 0.2993, 0.925],
-        [-0.5, -0.101, 0.75]
-        ])
-    N, D = X.shape
+            [0.5, 0.4, 0.3],
+            [1.2, 0.9, 0.2],
+            [-0.1, 0.8, -0.2],
+            [0.0, 0.5, -1.0]
+            ])
+    x = X[0]
 
-    # Setup densities
-    m_0 = np.zeros(D)
-    k_0 = 0.05
-    v_0 = D + 3
-    S_0 = 0.5*np.eye(D)
-    prior = NIW(m_0, k_0, v_0, S_0)
-    gmm = GaussianComponents(X, prior, [0, 0, 0])
+    # Setup single-component model
+    gmm = GaussianComponentsDiag(X, prior)
+    N, _ = X.shape
+    for i in range(N):
+        gmm.add_item(i, 0)
 
-    # Calculate log marginal of data
-    log_marg = gmm.log_marg_k(0)
-    print "Log marginal:", gmm.log_marg_k(0)
+    # Calculate posterior by hand
+    k_N = k_0 + N
+    v_N = v_0 + N
+    m_N = (k_0*m_0 + N*X[:N].mean(axis=0))/k_N
+    S_N = S_0 + np.square(X[:N]).sum(axis=0) + k_0*np.square(m_0) - k_N*np.square(m_N)
+    var = S_N*(k_N + 1)/(k_N*v_N)
+
+    print "Log posterior of " + str(x) + ":", gmm.log_post_pred_k(0, 0)
+    print (
+        "Log posterior of " + str(x) + ": " +
+        str(np.sum([students_t(x[i], m_N[i], S_N[i]*(k_N + 1)/(k_N*v_N), v_N) for i in range(len(x))]))
+        )
     print
 
 
-    # HIGHER DIMENSIONAL EXAMPLE
+    # MULTIPLE COMPONENT EXAMPLE
 
     # Data generated with np.random.seed(2); np.random.rand(11, 4)
     X = np.array([
@@ -453,14 +459,15 @@ def main():
     m_0 = X.mean(axis=0)
     k_0 = 0.05
     v_0 = D + 10
-    S_0 = 0.5*np.eye(D)
+    S_0 = 0.5*np.ones(D)
     prior = NIW(m_0, k_0, v_0, S_0)
-    gmm = GaussianComponents(X, prior, [0, 0, 0, 1, 0, 1, 3, 4, 3, 2, -1])
+    gmm = GaussianComponentsDiag(X, prior, [0, 0, 0, 1, 0, 1, 3, 4, 3, 2, -1])
 
     print "Consider vector:", X[10]
     print "Log post predictive:", log_post_pred_unvectorized(gmm, 10)
     print "Log post predictive:", gmm.log_post_pred(10)
     print "Log marginal for component 0:", gmm.log_marg_k(0)
+
 
 if __name__ == "__main__":
     main()

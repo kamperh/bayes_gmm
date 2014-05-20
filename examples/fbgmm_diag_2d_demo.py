@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-A basic demo of 2D generated data for illustrating the FBGMM.
+A demo of 2D generated data for illustrating the diagonal covariance FBGMM.
 
 Author: Herman Kamper
 Contact: kamperh@gmail.com
@@ -50,11 +50,11 @@ def main():
     m_0 = np.zeros(D)
     k_0 = covar_scale**2/mu_scale**2
     v_0 = D + 3
-    S_0 = covar_scale**2*v_0*np.eye(D)
+    S_0 = covar_scale**2*v_0*np.ones(D)
     prior = NIW(m_0, k_0, v_0, S_0)
 
     # Setup FBGMM
-    fbgmm = FBGMM(X, prior, alpha, K, "rand")
+    fbgmm = FBGMM(X, prior, alpha, K, "rand", covariance_type="diag")
 
     # Perform Gibbs sampling
     record = fbgmm.gibbs_sample(n_iter)
@@ -65,7 +65,7 @@ def main():
     plot_mixture_model(ax, fbgmm)
     for k in xrange(fbgmm.components.K):
         mu, sigma = fbgmm.components.rand_k(k)
-        plot_ellipse(ax, mu, sigma)
+        plot_ellipse(ax, mu, np.diag(sigma))
     plt.show()
 
 

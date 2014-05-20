@@ -13,27 +13,6 @@ from bayes_gmm.gaussian_components import log_post_pred_unvectorized, GaussianCo
 from bayes_gmm.niw import NIW
 
 
-def test_log_post_pred_k():
-
-    # Setup densities
-    prior = NIW(m_0=np.array([0.0, 0.0]), k_0=2., v_0=5., S_0=5.*np.eye(2))
-    gmm = GaussianComponents(np.array([
-        [1.2, 0.9],
-        [-0.1, 0.8],
-        [0.5, 0.4]
-        ]), prior)
-
-    # Add data vectors to a single component
-    gmm.add_item(0, 0)
-    gmm.add_item(1, 0)
-
-    # Calculate log predictave
-    lp = gmm.log_post_pred_k(2, 0)
-
-    lp_expected = -2.07325364088
-    npt.assert_almost_equal(lp, lp_expected)
-
-
 def test_log_prior_3d():
 
     # Data
@@ -103,6 +82,28 @@ def test_log_marg_k():
     log_marg = gmm.log_marg_k(0)
 
     npt.assert_almost_equal(log_marg, log_marg_expected)
+
+
+def test_log_post_pred_k():
+
+    # Setup densities
+    prior = NIW(m_0=np.array([0.0, 0.0]), k_0=2., v_0=5., S_0=5.*np.eye(2))
+    gmm = GaussianComponents(np.array([
+        [1.2, 0.9],
+        [-0.1, 0.8],
+        [0.5, 0.4]
+        ]), prior)
+
+    # Add data vectors to a single component
+    gmm.add_item(0, 0)
+    gmm.add_item(1, 0)
+
+    # Calculate log predictave
+    lp = gmm.log_post_pred_k(2, 0)
+
+    lp_expected = -2.07325364088
+    npt.assert_almost_equal(lp, lp_expected)
+
 
 
 def test_log_post_pred():
