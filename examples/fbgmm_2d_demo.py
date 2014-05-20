@@ -35,7 +35,7 @@ def main():
 
     # Model parameters
     alpha = 1.
-    K = 3           # number of components
+    K = 4           # number of components
     n_iter = 20
 
     # Generate data

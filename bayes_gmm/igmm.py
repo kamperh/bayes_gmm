@@ -53,7 +53,7 @@ class IGMM(object):
     """
 
     def __init__(
-            self, X, prior, alpha, assignments="rand", K=1, max_K=None,
+            self, X, prior, alpha, assignments="rand", K=1, K_max=None,
             covariance_type="full"
             ):
 
@@ -80,9 +80,9 @@ class IGMM(object):
             pass
 
         if covariance_type == "full":
-            self.components = GaussianComponents(X, prior, assignments, max_K)
+            self.components = GaussianComponents(X, prior, assignments, K_max)
         elif covariance_type == "diag":
-            self.components = GaussianComponentsDiag(X, prior, assignments, max_K)
+            self.components = GaussianComponentsDiag(X, prior, assignments, K_max)
         else:
             assert False, "Invalid covariance type."
 

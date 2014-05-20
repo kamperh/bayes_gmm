@@ -11,6 +11,7 @@ import numpy as np
 import time
 
 from gaussian_components import GaussianComponents
+from gaussian_components_diag import GaussianComponentsDiag
 import utils
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,8 @@ class FBGMM(object):
     """
     A finite Bayesian Gaussian mixture model (FBGMM).
 
-    See `GaussianComponents` for an overview of the parameters not mentioned
-    below.
+    See `GaussianComponents` or `GaussianComponentsDiag` for an overview of the
+    parameters not mentioned below.
 
     Parameters
     ----------
@@ -43,9 +44,15 @@ class FBGMM(object):
         following values:
         - "rand": Vectors are assigned randomly to one of `K` components.
         - "each-in-own": Each vector is assigned to a component of its own.
+    covariance_type : str
+        String describing the type of covariance parameters to use. Must be
+        one of "full" or "diag".
     """
 
-    def __init__(self, X, prior, alpha, K, assignments="rand"):
+    def __init__(
+            self, X, prior, alpha, K, assignments="rand",
+            covariance_type="full"
+            ):
 
         self.alpha = alpha
         N, D = X.shape
@@ -66,7 +73,12 @@ class FBGMM(object):
             # assignments is a vector
             pass
 
-        self.components = GaussianComponents(X, prior, assignments, K_max=K)
+        if covariance_type == "full":
+            self.components = GaussianComponents(X, prior, assignments, K_max=K)
+        elif covariance_type == "diag":
+            self.components = GaussianComponentsDiag(X, prior, assignments, K_max=K)
+        else:
+            assert False, "Invalid covariance type."
 
     def log_marg(self):
         """Return log marginal of data and component assignments: p(X, z)"""

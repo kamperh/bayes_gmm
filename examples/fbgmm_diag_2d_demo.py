@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-A demo of 2D generated data illustrating the diagonal covariance IGMM.
+A demo of 2D generated data for illustrating the diagonal covariance FBGMM.
 
 Author: Herman Kamper
 Contact: kamperh@gmail.com
@@ -17,7 +17,7 @@ import sys
 sys.path.append("..")
 
 from bayes_gmm.niw import NIW
-from bayes_gmm.igmm import IGMM
+from bayes_gmm.fbgmm import FBGMM
 from plot_utils import plot_ellipse, plot_mixture_model
 
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +35,7 @@ def main():
 
     # Model parameters
     alpha = 1.
-    K = 3           # initial number of components
+    K = 4           # number of components
     n_iter = 20
 
     # Generate data
@@ -53,19 +53,18 @@ def main():
     S_0 = covar_scale**2*v_0*np.ones(D)
     prior = NIW(m_0, k_0, v_0, S_0)
 
-    # Setup IGMM
-    igmm = IGMM(X, prior, alpha, assignments="rand", K=K, covariance_type="diag")
-    # igmm = IGMM(X, prior, alpha, assignments="one-by-one", K=K)
+    # Setup FBGMM
+    fbgmm = FBGMM(X, prior, alpha, K, "rand", covariance_type="diag")
 
     # Perform Gibbs sampling
-    record = igmm.gibbs_sample(n_iter)
+    record = fbgmm.gibbs_sample(n_iter)
 
     # Plot results
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    plot_mixture_model(ax, igmm)
-    for k in xrange(igmm.components.K):
-        mu, sigma = igmm.components.rand_k(k)
+    plot_mixture_model(ax, fbgmm)
+    for k in xrange(fbgmm.components.K):
+        mu, sigma = fbgmm.components.rand_k(k)
         plot_ellipse(ax, mu, np.diag(sigma))
     plt.show()
 
