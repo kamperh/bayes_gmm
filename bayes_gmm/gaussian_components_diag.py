@@ -131,6 +131,31 @@ class GaussianComponentsDiag(object):
         for i in xrange(self.N):
             self.cached_log_prior[i] = self.log_prior(i)
 
+    def cache_component_stats(self, k):
+        """
+        Return the statistics for component `k` in a tuple.
+
+        In this way the statistics for a component can be cached and can then
+        be restored later using `restore_component_from_stats`.
+        """
+        return (
+            self.m_N_numerators[k].copy(),
+            self.S_N_partials[k].copy(),
+            self.log_prod_vars[k],
+            self.inv_vars[k].copy(),
+            self.counts[k]
+            )
+
+    def restore_component_from_stats(
+            self, k, m_N_numerator, S_N_partial, log_prod_var, inv_var, count
+            ):
+        """Restore component `k` using the provided statistics."""
+        self.m_N_numerators[k, :] = m_N_numerator
+        self.S_N_partials[k, :] = S_N_partial
+        self.log_prod_vars[k] = logdet_covar
+        self.inv_vars[k, :] = inv_covar
+        self.counts[k] = count
+
     def add_item(self, i, k):
         """
         Add data vector `X[i]` to component `k`.
@@ -251,6 +276,19 @@ class GaussianComponentsDiag(object):
             + self.D*(self._cached_gammaln_by_2[v_N] - self._cached_gammaln_by_2[self.prior.v_0])
             )
 
+    def log_marg(self):
+        """
+        Return the log marginal probability of all the data vectors given the
+        component `assignments`.
+
+        The log marginal probability of
+        p(X|z) = p(x_1, x_2, ... x_N | z_1, z_2, ..., z_N) is returned.
+        """
+        log_prob_X_given_z = 0.
+        for k in xrange(self.K):
+            log_prob_X_given_z += self.log_marg_k(k)
+        return log_prob_X_given_z
+
     def _update_log_prod_vars_and_inv_vars(self, k):
         """
         Update the variance terms for component `k`.
@@ -357,9 +395,6 @@ def main():
         str(np.sum([students_t(x[i], m_N[i], S_N[i]*(k_N + 1)/(k_N*v_N), v_N) for i in range(len(x))]))
         )
     print
-
-
-    # HERE: CALCULATE LOG MARGINAL BY HAND AS ABOVE AND COMPARE TO log_marg_k, THEN ADD TEST
 
 
     # MULTIPLE COMPONENT EXAMPLE

@@ -4,6 +4,8 @@ Contact: kamperh@gmail.com
 Date: 2014
 """
 
+from scipy.special import gammaln
+import math
 import numpy as np
 import numpy.testing as npt
 
@@ -252,3 +254,93 @@ def test_log_post_pred():
     expected_log_post_pred = log_post_pred_unvectorized(gmm, 10)
 
     npt.assert_almost_equal(gmm.log_post_pred(10), expected_log_post_pred)
+
+
+def test_log_marg_k():
+
+    np.random.seed(1)
+
+    # Generate data
+    D = 10
+    N_1 = 10
+    X_1 = 5*np.random.rand(N_1, D) - 1
+
+    # Prior
+    m_0 = 5*np.random.rand(D) - 2
+    k_0 = np.random.randint(15)
+    v_0 = D + np.random.randint(5)
+    S_0 = 2*np.random.rand(D) + 3
+    prior = NIW(m_0=m_0, k_0=k_0, v_0=v_0, S_0=S_0)
+
+    # Setup GMM
+    assignments = np.concatenate([np.zeros(N_1)])
+    gmm = GaussianComponentsDiag(X_1, prior, assignments=assignments)
+
+    # Calculate marginal for component by hand
+    k_N = k_0 + N_1
+    v_N = v_0 + N_1
+    m_N = (k_0*m_0 + N_1*X_1.mean(axis=0))/k_N
+    S_N = S_0 + np.square(X_1).sum(axis=0) + k_0*np.square(m_0) - k_N*np.square(m_N)
+    var = S_N*(k_N + 1)/(k_N*v_N)
+    expected_log_marg = (
+        - N_1*D/2.*math.log(np.pi)
+        + D/2.*math.log(k_0) - D/2.*math.log(k_N)
+        + v_0/2.*np.log(S_0).sum() - v_N/2.*np.log(S_N).sum()
+        + D*(gammaln(v_N/2.) - gammaln(v_0/2.))
+        )
+
+    npt.assert_almost_equal(gmm.log_marg_k(0), expected_log_marg)
+
+
+def test_log_marg():
+
+    np.random.seed(1)
+
+    # Generate data
+    D = 10
+    N_1 = 10
+    N_2 = 5
+    X = 5*np.random.rand(N_1 + N_2, D) - 1
+    X_1 = X[:N_1]
+    X_2 = X[N_1:]
+
+    # Prior
+    m_0 = 5*np.random.rand(D) - 2
+    k_0 = np.random.randint(15)
+    v_0 = D + np.random.randint(5)
+    S_0 = 2*np.random.rand(D) + 3
+    prior = NIW(m_0=m_0, k_0=k_0, v_0=v_0, S_0=S_0)
+
+    # Setup GMM
+    assignments = np.concatenate([np.zeros(N_1), np.ones(N_2)])
+    gmm = GaussianComponentsDiag(X, prior, assignments=assignments)
+
+    # Calculate marginal for first component by hand
+    k_N = k_0 + N_1
+    v_N = v_0 + N_1
+    m_N = (k_0*m_0 + N_1*X_1.mean(axis=0))/k_N
+    S_N = S_0 + np.square(X_1).sum(axis=0) + k_0*np.square(m_0) - k_N*np.square(m_N)
+    var = S_N*(k_N + 1)/(k_N*v_N)
+    expected_log_marg_1 = (
+        - N_1*D/2.*math.log(np.pi)
+        + D/2.*math.log(k_0) - D/2.*math.log(k_N)
+        + v_0/2.*np.log(S_0).sum() - v_N/2.*np.log(S_N).sum()
+        + D*(gammaln(v_N/2.) - gammaln(v_0/2.))
+        )
+
+    # Calculate marginal for second component by hand
+    k_N = k_0 + N_2
+    v_N = v_0 + N_2
+    m_N = (k_0*m_0 + N_2*X_2.mean(axis=0))/k_N
+    S_N = S_0 + np.square(X_2).sum(axis=0) + k_0*np.square(m_0) - k_N*np.square(m_N)
+    var = S_N*(k_N + 1)/(k_N*v_N)
+    expected_log_marg_2 = (
+        - N_2*D/2.*math.log(np.pi)
+        + D/2.*math.log(k_0) - D/2.*math.log(k_N)
+        + v_0/2.*np.log(S_0).sum() - v_N/2.*np.log(S_N).sum()
+        + D*(gammaln(v_N/2.) - gammaln(v_0/2.))
+        )
+
+    expected_log_marg = expected_log_marg_1 + expected_log_marg_2
+
+    npt.assert_almost_equal(gmm.log_marg(), expected_log_marg)
