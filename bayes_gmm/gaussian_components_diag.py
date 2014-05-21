@@ -1,6 +1,6 @@
 """
 Author: Herman Kamper
-Contact: kamperh@gmail.com
+Contact: h.kamper@sms.ed.ac.uk
 Date: 2014
 """
 
