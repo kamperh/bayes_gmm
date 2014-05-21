@@ -233,6 +233,7 @@ class GaussianComponentsDiag(object):
         v = v_N
         return self._prod_students_t(i, mu, self.log_prod_vars[k], self.inv_vars[k], v)
 
+    # @profile
     def log_post_pred(self, i):
         """
         Return a `K`-dimensional vector of the posterior predictive of `X[i]`
@@ -252,10 +253,20 @@ class GaussianComponentsDiag(object):
                 - 0.5*self._cached_log_v[v_Ns] - 0.5*self._cached_log_pi
                 )
             - 0.5*self.log_prod_vars[:self.K]
-            - (v_Ns + 1)/2. * np.log(
+            - (v_Ns + 1)/2. * sum_axis1(np.log(
                 1 + np.square(deltas)*self.inv_vars[:self.K]*(1./v_Ns[:, np.newaxis])
-                ).sum(axis = 1)
+                ))
             )
+        # return (
+        #     self.D * (
+        #         studentt_gammas
+        #         - 0.5*self._cached_log_v[v_Ns] - 0.5*self._cached_log_pi
+        #         )
+        #     - 0.5*self.log_prod_vars[:self.K]
+        #     - (v_Ns + 1)/2. * np.log(
+        #         1 + np.square(deltas)*self.inv_vars[:self.K]*(1./v_Ns[:, np.newaxis])
+        #         ).sum(axis = 1)
+        #     )
 
     def log_marg_k(self, k):
         """
@@ -347,6 +358,11 @@ class GaussianComponentsDiag(object):
 #-----------------------------------------------------------------------------#
 #                              UTILITY FUNCTIONS                              #
 #-----------------------------------------------------------------------------#
+
+# Below is slightly faster than np.sum, see http://stackoverflow.com/questions/
+# 18365073/why-is-numpys-einsum-faster-than-numpys-built-in-functions
+sum_axis1 = lambda A: np.einsum("ij->i", A)
+
 
 def students_t(x, mu, var, v):
     """
