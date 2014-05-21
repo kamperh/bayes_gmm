@@ -225,7 +225,6 @@ class GaussianComponents(object):
         v = v_N - self.D + 1
         return self._multivariate_students_t(i, mu, self.logdet_covars[k], self.inv_covars[k], v)
 
-    # @profile
     def log_post_pred(self, i):
         """
         Return a `K`-dimensional vector of the posterior predictive of `X[i]`
