@@ -1,6 +1,6 @@
 """
 Author: Herman Kamper
-Contact: kamperh@gmail.com
+Contact: h.kamper@sms.ed.ac.uk
 Date: 2014
 """
 
@@ -23,7 +23,7 @@ class GaussianComponents(object):
     """
     Components of a Bayesian Gaussian mixture model (GMM).
 
-    This class is used to present the `K` components of a  Bayesian GMM. All
+    This class is used to present the `K` components of a Bayesian GMM. All
     values necessary for computing likelihood terms are stored. For example,
     `m_N_numerators` is a KxD matrix in which each D-dimensional row vector is
     the numerator for the m_N term (4.210) in Murphy, p. 134 for each of the

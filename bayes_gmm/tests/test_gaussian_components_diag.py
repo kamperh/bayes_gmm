@@ -1,6 +1,6 @@
 """
 Author: Herman Kamper
-Contact: kamperh@gmail.com
+Contact: h.kamper@sms.ed.ac.uk
 Date: 2014
 """
 
@@ -14,7 +14,7 @@ from bayes_gmm.niw import NIW
 
 
 
-def test_prod_students_t():
+def test_log_prod_students_t():
 
     np.random.seed(1)
 
@@ -26,7 +26,7 @@ def test_prod_students_t():
     S_0 = 2*np.random.rand(D) + 3
     prior = NIW(m_0=m_0, k_0=k_0, v_0=v_0, S_0=S_0)
 
-    # GMM we will use to access `_prod_students_t`
+    # GMM we will use to access `_log_prod_students_t`
     x = 3*np.random.rand(D) + 4
     gmm = GaussianComponentsDiag(np.array([x]), prior)
 
