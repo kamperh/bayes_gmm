@@ -21,7 +21,7 @@ class GaussianComponentsDiag(object):
     Components of a Bayesian Gaussian mixture model (GMM) with diagonal
     covariance matrices.
 
-    This class is used to present the `K` components of a  Bayesian GMM. All
+    This class is used to present the `K` components of a Bayesian GMM. All
     values necessary for computing likelihood terms are stored. For example,
     `m_N_numerators` is a KxD matrix in which each D-dimensional row vector is
     the numerator for the m_N term (4.210) in Murphy, p. 134 for each of the
@@ -219,7 +219,7 @@ class GaussianComponentsDiag(object):
         log_prod_var = np.log(var).sum()
         inv_var = 1./var
         v = self.prior.v_0
-        return self._prod_students_t(i, mu, log_prod_var, inv_var, v)
+        return self._log_prod_students_t(i, mu, log_prod_var, inv_var, v)
 
     def log_post_pred_k(self, i, k):
         """
@@ -231,7 +231,7 @@ class GaussianComponentsDiag(object):
         m_N = self.m_N_numerators[k]/k_N
         mu = m_N
         v = v_N
-        return self._prod_students_t(i, mu, self.log_prod_vars[k], self.inv_vars[k], v)
+        return self._log_prod_students_t(i, mu, self.log_prod_vars[k], self.inv_vars[k], v)
 
     # @profile
     def log_post_pred(self, i):
@@ -265,7 +265,7 @@ class GaussianComponentsDiag(object):
         #     - 0.5*self.log_prod_vars[:self.K]
         #     - (v_Ns + 1)/2. * np.log(
         #         1 + np.square(deltas)*self.inv_vars[:self.K]*(1./v_Ns[:, np.newaxis])
-        #         ).sum(axis = 1)
+        #         ).sum(axis=1)
         #     )
 
     def log_marg_k(self, k):
@@ -320,14 +320,12 @@ class GaussianComponentsDiag(object):
             var[i] = invchisquared_sample(v_N, S_N[i]/v_N, 1)[0]
             mean[i] = np.random.normal(m_N[i], np.sqrt(var[i]/k_N))
 
-        # sigma = np.linalg.solve(cholesky(S_N).T, np.eye(self.D))   # don't understand this step
-        # sigma = wishart.iwishrnd(sigma, v_N, sigma)
-        # mu = np.random.multivariate_normal(m_N, sigma/k_N)
         return mean, var
 
     def _update_log_prod_vars_and_inv_vars(self, k):
         """
-        Update the variance terms for component `k`.
+        Update the variance terms for the posterior predictive distribution of
+        component `k`.
 
         Based on the `m_N_numerators` and `S_N_partials` terms for the `k`th
         component, the `log_prod_vars` and `inv_vars` terms are updated.
@@ -339,7 +337,7 @@ class GaussianComponentsDiag(object):
         self.log_prod_vars[k] = np.log(var).sum()
         self.inv_vars[k, :] = 1./var
 
-    def _prod_students_t(self, i, mu, log_prod_var, inv_var, v):
+    def _log_prod_students_t(self, i, mu, log_prod_var, inv_var, v):
         """
         Return the value of the log of the product of the univariate Student's
         t PDFs at `X[i]`.
@@ -370,7 +368,7 @@ def students_t(x, mu, var, v):
 
     See Murphy's bayesGauss notes, p. 26. This function is mainly used for
     testing purposes, specifically for comparison with
-    `GaussianComponentsDiag._prod_students_t`.
+    `GaussianComponentsDiag._log_prod_students_t`.
     """
     c = gammaln((v + 1)/2.) - gammaln(v/2.) - 0.5*(math.log(v) + math.log(np.pi) + math.log(var))
     return c - (v + 1)/2. * math.log(1 + 1./v*(x - mu)**2/var)
