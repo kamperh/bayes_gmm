@@ -27,8 +27,8 @@ class IGMM(object):
     """
     An infinite Gaussian mixture model (IGMM).
 
-    See `GaussianComponents` or `GaussianComponentsDiag` for an overview of the
-    parameters not mentioned below.
+    See `GaussianComponents` for an overview of the parameters not mentioned
+    below.
 
     Parameters
     ----------

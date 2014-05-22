@@ -33,13 +33,9 @@ class GaussianComponentsFixedVar(object):
     ----------
     X : NxD matrix
         A matrix of N data vectors, each of dimension D.
-    precision : Dx1 vector
-        The fixed precisions (i.e. the diagonal of the fixed diagonal precision
-        matrix).
-    mu_0 : Dx1 vector
-        The prior mean of the mean of the Gaussian components.
-    var_0 : Dx1 vector
-        The prior variance of the mean of the Gaussian components.
+    prior : `FixedVarPrior`
+        Contains the fixed variance Dx1 vector `var`, the prior mean Dx1 vector
+        `mu_0` and the prior variance Dx1 vector `var_0`.
     assignments : Nx1 vector of int
         The initial component assignments. If this values is None, then all
         data vectors are left unassigned indicated with -1 in the vector.
@@ -76,13 +72,13 @@ class GaussianComponentsFixedVar(object):
         Counts for each of the K components.
     """
 
-    def __init__(self, X, var, mu_0, var_0, assignments=None, K_max=None):
+    def __init__(self, X, prior, assignments=None, K_max=None):
 
         # Attributes from parameters
         self.X = X
-        self.precision = 1./var
-        self.mu_0 = mu_0
-        self.precision_0 = 1./var_0
+        self.precision = 1./prior.var
+        self.mu_0 = prior.mu_0
+        self.precision_0 = 1./prior.var_0
         self.N, self.D = X.shape
         if K_max is None:
             K_max = self.N
@@ -300,6 +296,20 @@ class GaussianComponentsFixedVar(object):
 
 
 #-----------------------------------------------------------------------------#
+#                     FIXED VARIANCE GAUSSIAN PRIOR CLASS                     #
+#-----------------------------------------------------------------------------#
+
+class FixedVarPrior(object):
+    """
+    The prior parameters for a fixed diagonal covariance multivariate Gaussian.
+    """
+    def __init__(self, var, mu_0, var_0):
+        self.var = var
+        self.mu_0 = mu_0
+        self.var_0 = var_0
+
+
+#-----------------------------------------------------------------------------#
 #                              UTILITY FUNCTIONS                              #
 #-----------------------------------------------------------------------------#
 
@@ -324,37 +334,8 @@ def log_post_pred_unvectorized(gmm, i):
 #-----------------------------------------------------------------------------#
 
 def main():
-
-
-
-
-    return
-    # Calculate posterior for first component by hand
-    x_1 = X_1[0]
-    precision_N_1 = precision_0 + N_1*precision
-    mu_N_1 = (mu_0 * precision_0 + precision*N_1*X_1.mean(axis=0)) / precision_N_1
-    precision_pred = 1./(1./precision_N_1 + 1./precision)
-    expected_posterior = np.sum(
-        [log_norm_pdf(x_1[i], mu_N_1[i], 1./precision_pred[i]) for i in range(len(x_1))]
-        )
-    print expected_posterior
-    print gmm.log_post_pred_k(0, 0)
-
-    # Calculate posterior for second component by hand
-    x_3 = X_3[0]
-    precision_N_3 = precision_0 + N_3*precision
-    mu_N_3 = (mu_0 * precision_0 + precision*N_3*X_3.mean(axis=0)) / precision_N_3
-    precision_pred = 1./(1./precision_N_3 + 1./precision)
-    expected_posterior = np.sum(
-        [log_norm_pdf(x_3[i], mu_N_3[i], 1./precision_pred[i]) for i in range(len(x_3))]
-        )
-    print expected_posterior
-    print gmm.log_post_pred_k(N_1 + N_2, 1)
-
-
+    pass
 
 
 if __name__ == "__main__":
     main()
-
-

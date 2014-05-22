@@ -9,7 +9,7 @@ import numpy as np
 import numpy.testing as npt
 
 from bayes_gmm.gaussian_components_fixedvar import (
-    GaussianComponentsFixedVar, log_norm_pdf, log_post_pred_unvectorized
+    GaussianComponentsFixedVar, FixedVarPrior, log_norm_pdf, log_post_pred_unvectorized
     )
 
 
@@ -22,10 +22,11 @@ def test_log_prod_norm():
     var = 1*np.random.rand(D)
     mu_0 = 5*np.random.rand(D) - 2
     var_0 = 2*np.random.rand(D)
+    prior = FixedVarPrior(var, mu_0, var_0)
 
     # GMM will be used to access `_log_prod_norm`
     x = 3*np.random.rand(D) + 4
-    gmm = GaussianComponentsFixedVar(np.array([x]), var, mu_0, var_0)
+    gmm = GaussianComponentsFixedVar(np.array([x]), prior)
 
     expected_prior = np.sum([log_norm_pdf(x[i], mu_0[i], var_0[i]) for i in range(len(x))])
 
@@ -50,12 +51,13 @@ def test_log_post_pred_k():
     var = 1*np.random.rand(D)
     mu_0 = 5*np.random.rand(D) - 2
     var_0 = 2*np.random.rand(D)
+    prior = FixedVarPrior(var, mu_0, var_0)
     precision = 1./var
     precision_0 = 1./var_0
 
     # Setup GMM
     assignments = np.concatenate([np.zeros(N_1), np.ones(N_2), 2*np.ones(N_3)])
-    gmm = GaussianComponentsFixedVar(X, var, mu_0, var_0, assignments=assignments)
+    gmm = GaussianComponentsFixedVar(X, prior, assignments=assignments)
 
     # Remove everything from component 2 (additional check)
     for i in range(N_1, N_1 + N_2):
@@ -96,10 +98,11 @@ def test_log_post_pred():
     var = 1*np.random.rand(D)
     mu_0 = 5*np.random.rand(D) - 2
     var_0 = 2*np.random.rand(D)
+    prior = FixedVarPrior(var, mu_0, var_0)
 
     # Setup GMM
     assignments = [0, 0, 0, 1, 0, 1, 3, 4, 3, 2, -1]
-    gmm = GaussianComponentsFixedVar(X, var, mu_0, var_0, assignments=assignments)
+    gmm = GaussianComponentsFixedVar(X, prior, assignments=assignments)
     expected_log_post_pred = log_post_pred_unvectorized(gmm, 10)
 
     npt.assert_almost_equal(gmm.log_post_pred(10), expected_log_post_pred)
@@ -118,12 +121,13 @@ def test_log_marg_k():
     var = 10*np.random.rand(D)
     mu_0 = 5*np.random.rand(D) - 2
     var_0 = 2*np.random.rand(D)
+    prior = FixedVarPrior(var, mu_0, var_0)
     precision = 1./var
     precision_0 = 1./var_0
 
     # Setup GMM
     assignments = np.concatenate([np.zeros(N_1)])
-    gmm = GaussianComponentsFixedVar(X_1, var, mu_0, var_0, assignments=assignments)
+    gmm = GaussianComponentsFixedVar(X_1, prior, assignments=assignments)
 
     # Calculate marginal for component by hand
     expected_log_marg = np.sum(np.log([
