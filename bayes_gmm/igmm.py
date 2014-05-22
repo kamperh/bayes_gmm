@@ -14,6 +14,7 @@ import time
 
 from gaussian_components import GaussianComponents
 from gaussian_components_diag import GaussianComponentsDiag
+from gaussian_components_fixedvar import GaussianComponentsFixedVar
 import utils
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class IGMM(object):
         `assignments` is "rand".
     covariance_type : str
         String describing the type of covariance parameters to use. Must be
-        one of "full" or "diag".
+        one of "full", "diag" or "fixed".
     """
 
     def __init__(
@@ -83,6 +84,8 @@ class IGMM(object):
             self.components = GaussianComponents(X, prior, assignments, K_max)
         elif covariance_type == "diag":
             self.components = GaussianComponentsDiag(X, prior, assignments, K_max)
+        elif covariance_type == "fixed":
+            self.components = GaussianComponentsFixedVar(X, prior, assignments, K_max)
         else:
             assert False, "Invalid covariance type."
 

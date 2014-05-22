@@ -212,6 +212,7 @@ class GaussianComponentsFixedVar(object):
         mu_N = self.mu_N_numerators[k]/self.precision_Ns[k]
         return self._log_prod_norm(i, mu_N, self.log_prod_precision_preds[k], self.precision_preds[k])
 
+    # @profile
     def log_post_pred(self, i):
         """
         Return a `K`-dimensional vector of the posterior predictive of `X[i]`
@@ -269,6 +270,7 @@ class GaussianComponentsFixedVar(object):
         """
         mu_N = self.mu_N_numerators[k]/self.precision_Ns[k]
         var_N = 1./self.precision_Ns[k]
+        mean = np.zeros(self.D)
         for i in range(self.D):
             mean[i] = np.random.normal(mu_N[i], np.sqrt(var_N[i]))
         return mean
