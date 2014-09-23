@@ -24,6 +24,12 @@ Dependencies
 
 References and notes
 --------------------
+If you use this code, please cite:
+
+- H. Kamper, A. Jansen, S. King, S. Goldwater, "Unsupervised lexical clustering
+  of speech segments using fixed-dimensional acoustic embeddings", to appear in
+  Proceedings of the IEEE Spoken Language Technology Workshop, 2014.
+
 In the code, references are made to the following:
 
 - K. P. Murphy, "Conjugate Bayesian analysis of the Gaussian distribution,"
