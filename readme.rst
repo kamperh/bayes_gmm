@@ -28,8 +28,7 @@ If you use this code, please cite:
 
 - H. Kamper, A. Jansen, S. King, and S. Goldwater, "Unsupervised lexical
   clustering of speech segments using fixed-dimensional acoustic embeddings",
-  to appear in Proceedings of the IEEE Spoken Language Technology Workshop,
-  2014.
+  in Proceedings of the IEEE Spoken Language Technology Workshop (SLT), 2014.
 
 In the code, references are made to the following:
 
