@@ -2,8 +2,7 @@
 Utility functions for plotting.
 
 Author: Herman Kamper
-Contact: kamperh@gmail.com
-Date: 2013, 2014
+Date: 2013, 2014, 2023
 """
 
 from matplotlib.patches import Ellipse

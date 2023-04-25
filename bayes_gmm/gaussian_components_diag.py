@@ -1,7 +1,6 @@
 """
 Author: Herman Kamper
-Contact: h.kamper@sms.ed.ac.uk
-Date: 2014
+Date: 2014, 2023
 """
 
 from scipy.special import gammaln
@@ -131,7 +130,7 @@ class GaussianComponentsDiag(object):
         self._cached_log_pi = math.log(np.pi)
 
         self.cached_log_prior = np.zeros(self.N, np.float)
-        for i in xrange(self.N):
+        for i in range(self.N):
             self.cached_log_prior[i] = self.log_prior(i)
 
     def cache_component_stats(self, k):
@@ -298,7 +297,7 @@ class GaussianComponentsDiag(object):
         p(X|z) = p(x_1, x_2, ... x_N | z_1, z_2, ..., z_N) is returned.
         """
         log_prob_X_given_z = 0.
-        for k in xrange(self.K):
+        for k in range(self.K):
             log_prob_X_given_z += self.log_marg_k(k)
         return log_prob_X_given_z
 
@@ -443,12 +442,12 @@ def main():
     S_N = S_0 + np.square(X[:N]).sum(axis=0) + k_0*np.square(m_0) - k_N*np.square(m_N)
     var = S_N*(k_N + 1)/(k_N*v_N)
 
-    print "Log posterior of " + str(x) + ":", gmm.log_post_pred_k(0, 0)
-    print (
+    print("Log posterior of " + str(x) + ":", gmm.log_post_pred_k(0, 0))
+    print(
         "Log posterior of " + str(x) + ": " +
         str(np.sum([students_t(x[i], m_N[i], S_N[i]*(k_N + 1)/(k_N*v_N), v_N) for i in range(len(x))]))
         )
-    print
+    print()
 
 
     # MULTIPLE COMPONENT EXAMPLE
@@ -477,10 +476,10 @@ def main():
     prior = NIW(m_0, k_0, v_0, S_0)
     gmm = GaussianComponentsDiag(X, prior, [0, 0, 0, 1, 0, 1, 3, 4, 3, 2, -1])
 
-    print "Consider vector:", X[10]
-    print "Log post predictive:", log_post_pred_unvectorized(gmm, 10)
-    print "Log post predictive:", gmm.log_post_pred(10)
-    print "Log marginal for component 0:", gmm.log_marg_k(0)
+    print("Consider vector:", X[10])
+    print("Log post predictive:", log_post_pred_unvectorized(gmm, 10))
+    print("Log post predictive:", gmm.log_post_pred(10))
+    print("Log marginal for component 0:", gmm.log_marg_k(0))
 
 
 if __name__ == "__main__":

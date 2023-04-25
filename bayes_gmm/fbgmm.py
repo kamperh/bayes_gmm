@@ -1,19 +1,17 @@
 """
 Author: Herman Kamper
-Contact: kamperh@gmail.com
-Date: 2014
+Date: 2014, 2023
 """
 
-from scipy.misc import logsumexp
-from scipy.special import gammaln
+from scipy.special import gammaln, logsumexp
 import logging
 import numpy as np
 import time
 
-from gaussian_components import GaussianComponents
-from gaussian_components_diag import GaussianComponentsDiag
-from gaussian_components_fixedvar import GaussianComponentsFixedVar
-import utils
+from bayes_gmm.gaussian_components import GaussianComponents
+from bayes_gmm.gaussian_components_diag import GaussianComponentsDiag
+from bayes_gmm.gaussian_components_fixedvar import GaussianComponentsFixedVar
+from bayes_gmm import utils
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +61,7 @@ class FBGMM(object):
             assignments = np.random.randint(0, K, N)
 
             # Make sure we have consequetive values
-            for k in xrange(assignments.max()):
+            for k in range(assignments.max()):
                 while len(np.nonzero(assignments == k)[0]) == 0:
                     assignments[np.where(assignments > k)] -= 1
                 if assignments.max() == k:
@@ -125,7 +123,7 @@ class FBGMM(object):
         for i_iter in range(n_iter):
 
             # Loop over data items
-            for i in xrange(self.components.N):
+            for i in range(self.components.N):
 
                 # Cache some old values for possible future use
                 k_old = self.components.assignments[i]

@@ -4,8 +4,7 @@ Functions for generating values from Wishart and Inverse-Wishart distributions.
 Code taken from http://code.google.com/p/haines/source/browse/gcp/wishart.py.
 
 Author: Herman Kamper
-Contact: kamperh@gmail.com
-Date: 2013, 2014
+Date: 2013, 2014, 2023
 """
 
 import math
@@ -15,11 +14,11 @@ import random
 
 def wishrnd(sigma, v_0, C=None):
     """Return a sample from a Wishart distribution."""
-    if C == None:
+    if C is None:
         C = np.linalg.cholesky(sigma)
     D = sigma.shape[0]
     a = np.zeros((D, D), dtype=np.float32)
-    for r in xrange(D):
+    for r in range(D):
         if r != 0:
             a[r, :r] = np.random.normal(size=(r,))
         a[r, r] = math.sqrt(random.gammavariate(0.5*(v_0 - D + 1), 2.0))

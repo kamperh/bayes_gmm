@@ -4,17 +4,18 @@
 A demo of 2D generated data for illustrating the fixed covariance FBGMM.
 
 Author: Herman Kamper
-Contact: kamperh@gmail.com
-Date: 2013, 2014
+Date: 2013, 2014, 2023
 """
 
+from pathlib import Path
+from pathlib import Path
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import sys
 
-sys.path.append("..")
+sys.path.append(str(Path(__file__).parent/".."))
 
 from bayes_gmm.gaussian_components_fixedvar import FixedVarPrior
 from bayes_gmm.fbgmm import FBGMM
@@ -64,7 +65,7 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plot_mixture_model(ax, fbgmm)
-    for k in xrange(fbgmm.components.K):
+    for k in range(fbgmm.components.K):
         mu = fbgmm.components.rand_k(k)
         sigma = np.diag(var)
         plot_ellipse(ax, mu, sigma)

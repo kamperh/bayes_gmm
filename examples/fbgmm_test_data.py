@@ -8,10 +8,10 @@ proabilities are averaged in order to allow for comparison. The test data was
 generated using the scripts in the misc/ directory.
 
 Author: Herman Kamper
-Contact: kamperh@gmail.com
-Date: 2013, 2014
+Date: 2013, 2014, 2023
 """
 
+from pathlib import Path
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,7 +19,7 @@ import pickle
 import random
 import sys
 
-sys.path.append("..")
+sys.path.append(str(Path(__file__).parent/".."))
 
 from bayes_gmm.niw import NIW
 from bayes_gmm.fbgmm import FBGMM
@@ -61,7 +61,7 @@ def main():
 
     # Setup FBGMM
     fbgmm = FBGMM(X, prior, alpha, K, assignments=z)
-    print "Initial log marginal prob:", fbgmm.log_marg()
+    print("Initial log marginal prob:", fbgmm.log_marg())
 
     # Perform several Gibbs sampling runs and average the log marginals
     log_margs = np.zeros(n_iter)
@@ -75,7 +75,7 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plot_mixture_model(ax, fbgmm)
-    for k in xrange(fbgmm.components.K):
+    for k in range(fbgmm.components.K):
         mu, sigma = fbgmm.components.rand_k(k)
         plot_ellipse(ax, mu, sigma)
 

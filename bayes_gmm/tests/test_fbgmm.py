@@ -183,6 +183,6 @@ def test_sampling_2d_log_marg_deleted_components():
     expected_log_marg = -60.1448630929
     log_marg = fbgmm.log_marg()
 
-    print fbgmm.components.assignments
+    print(fbgmm.components.assignments)
 
     npt.assert_almost_equal(log_marg, expected_log_marg)

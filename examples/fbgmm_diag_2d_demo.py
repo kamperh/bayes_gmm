@@ -4,17 +4,17 @@
 A demo of 2D generated data for illustrating the diagonal covariance FBGMM.
 
 Author: Herman Kamper
-Contact: kamperh@gmail.com
-Date: 2013, 2014
+Date: 2013, 2014, 2023
 """
 
+from pathlib import Path
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import sys
 
-sys.path.append("..")
+sys.path.append(str(Path(__file__).parent/".."))
 
 from bayes_gmm.niw import NIW
 from bayes_gmm.fbgmm import FBGMM
@@ -63,7 +63,7 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plot_mixture_model(ax, fbgmm)
-    for k in xrange(fbgmm.components.K):
+    for k in range(fbgmm.components.K):
         mu, sigma = fbgmm.components.rand_k(k)
         plot_ellipse(ax, mu, np.diag(sigma))
     plt.show()

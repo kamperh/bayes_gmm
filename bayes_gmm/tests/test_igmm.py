@@ -168,7 +168,7 @@ def test_sampling_2d_log_marg_deleted_components():
     mu = np.random.randn(D, K_true)*mu_scale
     X = mu[:, z_true] + np.random.randn(D, N)*covar_scale
     X = X.T
-    print X
+    print(X)
 
     # Intialize prior
     m_0 = np.zeros(D)
@@ -182,7 +182,7 @@ def test_sampling_2d_log_marg_deleted_components():
 
     # Perform Gibbs sampling
     record = igmm.gibbs_sample(n_iter)
-    print igmm.components.assignments
+    print(igmm.components.assignments)
 
     expected_log_marg = -30.771535771
     log_marg = igmm.log_marg()

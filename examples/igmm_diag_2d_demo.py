@@ -4,17 +4,17 @@
 A demo of 2D generated data illustrating the diagonal covariance IGMM.
 
 Author: Herman Kamper
-Contact: kamperh@gmail.com
-Date: 2013, 2014
+Date: 2013, 2014, 2023
 """
 
+from pathlib import Path
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import sys
 
-sys.path.append("..")
+sys.path.append(str(Path(__file__).parent/".."))
 
 from bayes_gmm.niw import NIW
 from bayes_gmm.igmm import IGMM
@@ -64,7 +64,7 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plot_mixture_model(ax, igmm)
-    for k in xrange(igmm.components.K):
+    for k in range(igmm.components.K):
         mu, sigma = igmm.components.rand_k(k)
         plot_ellipse(ax, mu, np.diag(sigma))
     plt.show()
