@@ -7,7 +7,7 @@ Author: Herman Kamper
 Date: 2013, 2014, 2023
 """
 
-from pathlib import Path
+from matplotlib.patches import Ellipse
 from pathlib import Path
 import logging
 import matplotlib.pyplot as plt
@@ -19,12 +19,14 @@ sys.path.append(str(Path(__file__).parent/".."))
 
 from bayes_gmm.niw import NIW
 from bayes_gmm.fbgmm import FBGMM
-from plot_utils import plot_ellipse, plot_mixture_model
+from plot_utils import plot_ellipse, plot_mixture_model, colors
 
 logging.basicConfig(level=logging.INFO)
 
 random.seed(1)
 np.random.seed(1)
+
+click_through_iterations = True
 
 
 def main():
@@ -55,19 +57,49 @@ def main():
     prior = NIW(m_0, k_0, v_0, S_0)
 
     # Setup FBGMM
+    global fbgmm
     fbgmm = FBGMM(X, prior, alpha, K, "rand")
 
-    # Perform Gibbs sampling
-    record = fbgmm.gibbs_sample(n_iter)
+    if click_through_iterations:
 
-    # Plot results
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    plot_mixture_model(ax, fbgmm)
-    for k in range(fbgmm.components.K):
-        mu, sigma = fbgmm.components.rand_k(k)
-        plot_ellipse(ax, mu, sigma)
-    plt.show()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        scatter_points = plot_mixture_model(ax, fbgmm)
+        ellipses = []
+        for k in range(fbgmm.components.K):
+            mu, sigma = fbgmm.components.rand_k(k)
+            ellipses.append(plot_ellipse(ax, mu, sigma))
+
+        def onclick(event):
+            # global fbgmm
+
+            fbgmm.gibbs_sample(n_iter=1)
+            scatter_points.set_color(colors[fbgmm.components.assignments].tolist())
+            for k in range(fbgmm.components.K):
+                ellipses[k].remove()
+                mu, sigma = fbgmm.components.rand_k(k)
+                ellipses[k] = plot_ellipse(ax, mu, sigma)
+
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+
+        fig.canvas.mpl_connect("button_press_event", onclick)
+        plt.show()
+
+    else:
+
+        # Perform Gibbs sampling
+        record = fbgmm.gibbs_sample(n_iter)
+
+        # Plot results
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        plot_mixture_model(ax, fbgmm)
+        for k in range(fbgmm.components.K):
+            mu, sigma = fbgmm.components.rand_k(k)
+            plot_ellipse(ax, mu, sigma)
+        plt.show()
 
 
 if __name__ == "__main__":

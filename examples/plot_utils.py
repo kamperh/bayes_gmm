@@ -30,9 +30,11 @@ def plot_ellipse(ax, mu, sigma, color="b"):
     ellipse = Ellipse(mu, w, h, theta, color=color)  # color="k")
     ellipse.set_clip_box(ax.bbox)
     ellipse.set_alpha(0.2)
-    ax.add_artist(ellipse)
+    ellipse = ax.add_artist(ellipse)
+    return ellipse
 
 
 def plot_mixture_model(ax, model):
     X = np.array(model.components.X)
-    ax.scatter(X[:, 0], X[:, 1], color=colors[model.components.assignments].tolist(), s=10)
+    scatter_points = ax.scatter(X[:, 0], X[:, 1], color=colors[model.components.assignments].tolist(), s=10)
+    return scatter_points
