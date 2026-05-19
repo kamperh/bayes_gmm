@@ -3,7 +3,7 @@
 !.*
 !*.py
 !*.pyx
-!*.rst
+!*.md
 !*.ipynb
 !*.dia
 !*.wav
