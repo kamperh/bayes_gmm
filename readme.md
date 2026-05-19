@@ -16,7 +16,7 @@ model (IGMM) are implemented using collapsed Gibbs sampling.
 
 ## Dependencies
 
-- NumPy and SciPy: http://www.numpy.org/
+- NumPy and SciPy: <http://www.numpy.org/>
 
 
 ## References and notes
