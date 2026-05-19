@@ -84,11 +84,11 @@ class GaussianComponentsFixedVar(object):
         self.K_max = K_max
 
         # Initialize attributes
-        self.mu_N_numerators = np.zeros((self.K_max, self.D), np.float)
-        self.precision_Ns = np.zeros((self.K_max, self.D), np.float)
-        self.log_prod_precision_preds = np.zeros(self.K_max, np.float)
-        self.precision_preds = np.zeros((self.K_max, self.D), np.float)
-        self.counts = np.zeros(self.K_max, np.int)
+        self.mu_N_numerators = np.zeros((self.K_max, self.D), float)
+        self.precision_Ns = np.zeros((self.K_max, self.D), float)
+        self.log_prod_precision_preds = np.zeros(self.K_max, float)
+        self.precision_preds = np.zeros((self.K_max, self.D), float)
+        self.counts = np.zeros(self.K_max, int)
 
         # Perform caching
         self._cache()
@@ -96,11 +96,11 @@ class GaussianComponentsFixedVar(object):
         # Initialize components based on `assignments`
         self.K = 0
         if assignments is None:
-            self.assignments = -1*np.ones(self.N, np.int)
+            self.assignments = -1*np.ones(self.N, int)
         else:
 
             # Check that assignments are valid
-            assignments = np.asarray(assignments, np.int)
+            assignments = np.asarray(assignments, int)
             assert (self.N, ) == assignments.shape
             # Apart from unassigned (-1), components should be labelled from 0
             assert set(assignments).difference([-1]) == set(range(assignments.max() + 1))
@@ -113,7 +113,7 @@ class GaussianComponentsFixedVar(object):
 
     def _cache(self):
         self._cached_neg_half_D_log_2pi = -0.5*self.D*math.log(2.*np.pi)
-        self.cached_log_prior = np.zeros(self.N, np.float)
+        self.cached_log_prior = np.zeros(self.N, float)
         for i in range(self.N):
             self.cached_log_prior[i] = self.log_prior(i)
 
@@ -324,7 +324,7 @@ def log_post_pred_unvectorized(gmm, i):
     Return the same value as `GaussianComponentsFixedVar.log_post_pred` but
     using an unvectorized procedure, for testing purposes.
     """
-    post_pred = np.zeros(gmm.K, np.float)
+    post_pred = np.zeros(gmm.K, float)
     for k in range(gmm.K):
         post_pred[k] = gmm.log_post_pred_k(i, k)
     return post_pred

@@ -142,7 +142,7 @@ class IGMM(object):
                 self.components.del_item(i)
 
                 # Compute log probability of `X[i]` belonging to each component
-                log_prob_z = np.zeros(self.components.K + 1, np.float)
+                log_prob_z = np.zeros(self.components.K + 1, float)
                 # (25.35) in Murphy, p. 886
                 log_prob_z[:self.components.K] = np.log(self.components.counts[:self.components.K])
                 # (25.33) in Murphy, p. 886

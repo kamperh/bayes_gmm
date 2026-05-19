@@ -1,5 +1,5 @@
 test:
-	nosetests -v
+	PYTHONPATH=. pytest -v
 
 test_coverage:
-	nosetests --with-coverage --cover-package=bayes_gmm .
+	PYTHONPATH=. pytest --cov=bayes_gmm --cov-report=term-missing
