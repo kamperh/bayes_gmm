@@ -82,11 +82,11 @@ class GaussianComponents(object):
         self.K_max = K_max
 
         # Initialize attributes
-        self.m_N_numerators = np.zeros((self.K_max, self.D), np.float)
-        self.S_N_partials = np.zeros((self.K_max, self.D, self.D), np.float)
-        self.logdet_covars = np.zeros(self.K_max, np.float)
-        self.inv_covars = np.zeros((self.K_max, self.D, self.D), np.float)
-        self.counts = np.zeros(self.K_max, np.int)
+        self.m_N_numerators = np.zeros((self.K_max, self.D), float)
+        self.S_N_partials = np.zeros((self.K_max, self.D, self.D), float)
+        self.logdet_covars = np.zeros(self.K_max, float)
+        self.inv_covars = np.zeros((self.K_max, self.D, self.D), float)
+        self.counts = np.zeros(self.K_max, int)
 
         # Perform caching
         self._cache()
@@ -94,11 +94,11 @@ class GaussianComponents(object):
         # Initialize components based on `assignments`
         self.K = 0
         if assignments is None:
-            self.assignments = -1*np.ones(self.N, np.int)
+            self.assignments = -1*np.ones(self.N, int)
         else:
 
             # Check that assignments are valid
-            assignments = np.asarray(assignments, np.int)
+            assignments = np.asarray(assignments, int)
             assert (self.N, ) == assignments.shape
             # Apart from unassigned (-1), components should be labelled from 0
             assert set(assignments).difference([-1]) == set(range(assignments.max() + 1))
@@ -112,7 +112,7 @@ class GaussianComponents(object):
     def _cache(self):
         self._cached_prior_outer_m_0 = np.outer(self.prior.m_0, self.prior.m_0)
 
-        self._cached_outer = np.zeros((self.N, self.D, self.D), np.float)
+        self._cached_outer = np.zeros((self.N, self.D, self.D), float)
         for i in range(self.N):
             self._cached_outer[i, :, :] = np.outer(self.X[i], self.X[i])
 
@@ -121,7 +121,7 @@ class GaussianComponents(object):
         self._cached_gammaln_by_2 = gammaln(n/2.)
         self._cached_log_pi = math.log(np.pi)
 
-        self.cached_log_prior = np.zeros(self.N, np.float)
+        self.cached_log_prior = np.zeros(self.N, float)
         for i in range(self.N):
             self.cached_log_prior[i] = self.log_prior(i)
 
@@ -262,7 +262,7 @@ class GaussianComponents(object):
         v_N = self.prior.v_0 + self.counts[k]
         m_N = self.m_N_numerators[k]/k_N
         S_N = self.S_N_partials[k] - k_N*np.outer(m_N, m_N)
-        i = np.arange(1, self.D + 1, dtype=np.int)
+        i = np.arange(1, self.D + 1, dtype=int)
         return (
             - self.counts[k]*self.D/2.*self._cached_log_pi
             + self.D/2.*math.log(self.prior.k_0) - self.D/2.*math.log(k_N)
@@ -357,7 +357,7 @@ def log_post_pred_unvectorized(gmm, i):
     Return the same value as `GaussianComponents.log_post_pred` but using an
     unvectorized procedure, for testing purposes.
     """
-    post_pred = np.zeros(gmm.K, np.float)
+    post_pred = np.zeros(gmm.K, float)
     for k in range(gmm.K):
         post_pred[k] = gmm.log_post_pred_k(i, k)
     return post_pred

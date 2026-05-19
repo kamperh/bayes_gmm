@@ -27,7 +27,7 @@ def plot_ellipse(ax, mu, sigma, color="b"):
 
     # Eigenvalues give length of ellipse along each eigenvector
     w, h = 2 * np.sqrt(vals)
-    ellipse = Ellipse(mu, w, h, theta, color=color)  # color="k")
+    ellipse = Ellipse(mu, w, h, angle=theta, color=color)
     ellipse.set_clip_box(ax.bbox)
     ellipse.set_alpha(0.2)
     ellipse = ax.add_artist(ellipse)
